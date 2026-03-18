@@ -558,36 +558,49 @@ const isStudent = urlP.has('t') && urlP.has('s');
 
 function loadApp() {
   if (typeof firebase === 'undefined') {
-    document.getElementById('fb-status').textContent = 'Firebase failed to load. Check your internet connection.';
+    showFbError('Firebase scripts failed to load. Check your internet connection and refresh.');
     return;
   }
-  firebase.initializeApp(firebaseConfig);
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+  } catch(e) {
+    // Already initialized — safe to ignore
+  }
+
   db = firebase.firestore();
+
+  // Student view — skip DB test, go straight in
   if (isStudent) {
     document.getElementById('fb-loading').classList.add('hidden');
     document.getElementById('sv').classList.add('on');
     document.title = 'Mark Attendance — AttendIQ';
     initStudent();
-  } else {
-    document.getElementById('fb-status').textContent = 'Connecting to database…';
-    // Test Firestore connection
-    db.collection('subjects').limit(1).get()
-      .then(() => {
-        document.getElementById('fb-loading').classList.add('hidden');
-        const saved = sessionStorage.getItem('attendiq_teacher');
-        if (saved) {
-          const t = JSON.parse(saved);
-          currentTeacher = t;
-          showTeacherDashboard();
-        } else {
-          document.getElementById('login-overlay').classList.remove('hidden');
-        }
-      })
-      .catch(err => {
-        document.getElementById('fb-status').textContent = 'Connection failed. Check Firestore rules.';
-        console.error(err);
-      });
+    return;
   }
+
+  // Teacher view — show login immediately, connect DB in background
+  document.getElementById('fb-loading').classList.add('hidden');
+  const saved = sessionStorage.getItem('attendiq_teacher');
+  if (saved) {
+    try {
+      currentTeacher = JSON.parse(saved);
+      showTeacherDashboard();
+    } catch(e) {
+      sessionStorage.removeItem('attendiq_teacher');
+      document.getElementById('login-overlay').classList.remove('hidden');
+    }
+  } else {
+    document.getElementById('login-overlay').classList.remove('hidden');
+  }
+}
+
+function showFbError(msg) {
+  const el = document.getElementById('fb-status');
+  el.style.color = 'var(--red)';
+  el.innerHTML = msg + '<br><br>' +
+    '<button onclick="location.reload()" style="background:var(--accent);color:#0c0f1a;border:none;' +
+    'padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;">Retry</button>';
 }
 
 // ══════════════════════════════════════════
@@ -620,10 +633,38 @@ function showTeacherDashboard() {
   document.getElementById('t-name-pill').textContent = currentTeacher.name;
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-  loadSubjects();
-  preloadSubjectsIfEmpty();
-  listenAllSessions();
-  listenAllScans();
+
+  // Test Firestore silently — show banner if rules have expired
+  db.collection('subjects').limit(1).get()
+    .then(() => {
+      // Connected successfully
+      loadSubjects();
+      preloadSubjectsIfEmpty();
+      listenAllSessions();
+      listenAllScans();
+    })
+    .catch(err => {
+      const code = err.code || '';
+      let msg = '';
+      if (code === 'permission-denied') {
+        msg = 'Firestore rules have expired (30-day test mode ended). Please update your Firebase security rules.';
+      } else if (code === 'unavailable') {
+        msg = 'No internet connection. Please check your network and refresh.';
+      } else {
+        msg = 'Database error: ' + (err.message || code) + '. Please refresh and try again.';
+      }
+      // Show error banner inside the dashboard
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:99;background:var(--red-bg);' +
+        'border-bottom:1px solid var(--red-bd);padding:10px 20px;display:flex;align-items:center;' +
+        'justify-content:space-between;gap:12px;';
+      banner.innerHTML = '<span style="font-size:13px;color:var(--red);font-weight:500;">⚠ ' + msg + '</span>' +
+        '<a href="https://console.firebase.google.com/project/attendiq-fms/firestore/rules" target="_blank" ' +
+        'style="background:var(--red);color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;' +
+        'font-weight:700;text-decoration:none;white-space:nowrap;">Fix Rules →</a>';
+      document.getElementById('tv').prepend(banner);
+      console.error('Firestore error:', err);
+    });
 }
 
 // ══════════════════════════════════════════
@@ -1323,81 +1364,84 @@ function submitAttendance() {
   const deviceId = getDeviceId();
   const btn = document.getElementById('sv-submit');
   btn.disabled = true;
-  btn.textContent = 'Verifying…';
+  btn.textContent = 'Verifying...';
 
   const p = window._sp;
-  const minsDiff = p.ss ? Math.round((Date.now()-p.ss)/60000) : 0;
-  const status = minsDiff > 10 ? 'Late' : 'Present';
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const minsDiff = p.ss ? Math.round((Date.now() - p.ss) / 60000) : 0;
+  const status  = minsDiff > 10 ? 'Late' : 'Present';
+  const now     = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
   const dateStr = now.toLocaleDateString('en-CA');
 
-  // Check 1 — Has this DEVICE already submitted for this session?
+  function resetBtn() {
+    btn.disabled = false;
+    btn.textContent = 'Mark My Attendance';
+  }
+
+  // Check 1 - Has this DEVICE already submitted for this session?
   db.collection('attendance')
-    .where('sessionId','==',p.sessionId)
-    .where('deviceId','==',deviceId)
+    .where('sessionId', '==', p.sessionId)
+    .where('deviceId',  '==', deviceId)
     .get()
-    .then(deviceSnap => {
+    .then(function(deviceSnap) {
       if (!deviceSnap.empty) {
-        btn.disabled = false;
-        btn.textContent = 'Mark My Attendance';
-        showSvErr('Already Submitted',
-          'Attendance has already been marked from this device for this session. Each device can only submit once.');
-        return;
+        resetBtn();
+        showSvErr('Already Submitted', 'Attendance has already been marked from this device for this session. Each device can only submit once.');
+        return Promise.reject('duplicate_device');
       }
-
-      // Check 2 — Has this STUDENT ID already been submitted for this session?
+      // Check 2 - Has this STUDENT ID already been submitted?
       return db.collection('attendance')
-        .where('sessionId','==',p.sessionId)
-        .where('studentId','==',id)
-        .get()
-        .then(idSnap => {
-          if (!idSnap.empty) {
-            btn.disabled = false;
-            btn.textContent = 'Mark My Attendance';
-            showSvErr('Already Marked',
-              'Attendance for Student ID ' + id + ' has already been recorded for this session.');
-            return;
-          }
-
-          btn.textContent = 'Saving…';
-          // Both checks passed — save to Firestore
-          return db.collection('attendance').add({
-            sessionId: p.sessionId,
-            subjectCode: p.subject,
-            subjectName: p.subjectName,
-            teacherName: p.teacher,
-            studentId: id,
-            studentName: name,
-            year,
-            date: dateStr,
-            time: timeStr,
-            token: p.token,
-            deviceId,
-            status,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          }).then(() => {
-            // Update scan count on session
-            db.collection('sessions').doc(p.sessionId)
-              .update({ scanCount: firebase.firestore.FieldValue.increment(1) });
-
-            clearInterval(window._stiv);
-            document.getElementById('sv-form').style.display = 'none';
-            document.getElementById('sv-ok').style.display = '';
-            document.getElementById('sv-r-id').textContent = id;
-            document.getElementById('sv-r-name').textContent = name;
-        document.getElementById('sv-r-subj').textContent = p.subject+(p.subjectName?' — '+p.subjectName:'');
-        document.getElementById('sv-r-teacher').textContent = p.teacher || '—';
-        document.getElementById('sv-r-time').textContent = timeStr;
-        document.getElementById('sv-r-status').textContent = status;
-        document.getElementById('sv-r-status').style.color = status==='Late'?'var(--accent)':'var(--green)';
+        .where('sessionId', '==', p.sessionId)
+        .where('studentId', '==', id)
+        .get();
+    })
+    .then(function(idSnap) {
+      if (!idSnap) return; // was rejected above
+      if (!idSnap.empty) {
+        resetBtn();
+        showSvErr('Already Marked', 'Attendance for Student ID ' + id + ' has already been recorded for this session.');
+        return Promise.reject('duplicate_id');
+      }
+      // Both checks passed - save to Firestore
+      btn.textContent = 'Saving...';
+      return db.collection('attendance').add({
+        sessionId:   p.sessionId,
+        subjectCode: p.subject,
+        subjectName: p.subjectName,
+        teacherName: p.teacher,
+        studentId:   id,
+        studentName: name,
+        year:        year,
+        date:        dateStr,
+        time:        timeStr,
+        token:       p.token,
+        deviceId:    deviceId,
+        status:      status,
+        createdAt:   firebase.firestore.FieldValue.serverTimestamp()
       });
     })
-    .catch(err => {
-      btn.disabled = false;
-      btn.textContent = 'Mark My Attendance';
+    .then(function(docRef) {
+      if (!docRef) return; // was rejected above
+      // Update scan count
+      db.collection('sessions').doc(p.sessionId)
+        .update({ scanCount: firebase.firestore.FieldValue.increment(1) });
+      // Show success screen
+      clearInterval(window._stiv);
+      document.getElementById('sv-form').style.display = 'none';
+      document.getElementById('sv-ok').style.display   = '';
+      document.getElementById('sv-r-id').textContent      = id;
+      document.getElementById('sv-r-name').textContent    = name;
+      document.getElementById('sv-r-subj').textContent    = p.subject + (p.subjectName ? ' - ' + p.subjectName : '');
+      document.getElementById('sv-r-teacher').textContent = p.teacher || '-';
+      document.getElementById('sv-r-time').textContent    = timeStr;
+      document.getElementById('sv-r-status').textContent  = status;
+      document.getElementById('sv-r-status').style.color  = status === 'Late' ? 'var(--accent)' : 'var(--green)';
+    })
+    .catch(function(err) {
+      if (err === 'duplicate_device' || err === 'duplicate_id') return; // already handled
+      resetBtn();
       showSvErr('Error', 'Could not save attendance. Check your connection and try again.');
-      console.error(err);
+      console.error('Submit error:', err);
     });
 }
 
