@@ -355,9 +355,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
                     <circle class="t-bg" cx="36" cy="36" r="30"/>
                     <circle class="t-arc" id="t-arc" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="0"/>
                   </svg>
-                  <div class="t-txt"><span class="t-sec" id="t-sec">45</span><span class="t-lbl">sec</span></div>
+                  <div class="t-txt"><span class="t-sec" id="t-sec">120</span><span class="t-lbl">sec</span></div>
                 </div>
-                <div class="t-info"><strong>QR refreshes in</strong>Every 45 seconds</div>
+                <div class="t-info"><strong>QR refreshes in</strong>Every 2 minutes</div>
               </div>
               <div class="tok-box" id="tok-box" style="display:none;">Token: <b id="tok-val">—</b></div>
               <div class="hint"><strong>Students:</strong> Open camera → point at QR → tap link → fill form. Works on any phone, no app needed.</div>
@@ -434,7 +434,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <select id="sv-year"><option value="">Select year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
       </div>
       <button class="s-btn" id="sv-submit" onclick="submitAttendance()">Mark My Attendance</button>
-      <p class="s-note">Only scan during class. QR expires every 45 seconds.<br>Duplicate submissions are automatically rejected.</p>
+      <p class="s-note">Only scan during class. QR refreshes every 2 minutes.<br>Duplicate submissions are automatically rejected.</p>
     </div>
     <div id="sv-ok" class="s-result" style="display:none;">
       <div class="s-ico ok"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -523,7 +523,7 @@ let subjects = [];
 let selSubject = null;
 let activeSession = null;
 let sessTimer = null;
-let timerSec = 45;
+let timerSec = 120;
 let allScans = [];
 let unsubScans = null;
 let unsubSessions = null;
@@ -663,15 +663,22 @@ function startSession() {
 
 function stopSession() {
   if (!activeSession) return;
-  db.collection('sessions').doc(activeSession.id).update({ active: false, endTime: firebase.firestore.FieldValue.serverTimestamp() })
-    .then(() => {
-      clearInterval(sessTimer);
-      if (unsubScans) unsubScans();
-      activeSession = null;
-      timerSec = 45;
-      teardownSessionUI();
-      notify('Session stopped');
-    });
+  const stoppingId = activeSession.id;
+  // Immediately clear UI so teacher sees it's stopped
+  clearInterval(sessTimer);
+  if (unsubScans) unsubScans();
+  activeSession = null;
+  timerSec = 120;
+  teardownSessionUI();
+  // Write to Firestore — set active to false
+  db.collection('sessions').doc(stoppingId).update({
+    active: false,
+    endTime: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    notify('Session stopped');
+  }).catch(() => {
+    notify('Session stopped locally (sync may be delayed)');
+  });
 }
 
 function setupSessionUI() {
@@ -715,24 +722,33 @@ function genQR(token, sessionId) {
     '&tn=' + encodeURIComponent(currentTeacher.name);
   document.getElementById('tok-val').textContent = token;
   document.getElementById('qrcode').innerHTML = '';
-  try {
-    new QRCode(document.getElementById('qrcode'), {
-      text: url, width: 186, height: 186,
-      colorDark: '#000000', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  } catch(e) {}
+  // Small delay ensures DOM is cleared before QRCode library writes to it
+  setTimeout(() => {
+    try {
+      if (typeof QRCode === 'undefined') {
+        document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR library not loaded.<br>Refresh the page.</p></div>';
+        return;
+      }
+      new QRCode(document.getElementById('qrcode'), {
+        text: url, width: 186, height: 186,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {
+      document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR error: ' + e.message + '</p></div>';
+    }
+  }, 100);
 }
 
 function startTimer() {
-  timerSec = 45;
+  timerSec = 120;
   updateTimerUI();
   clearInterval(sessTimer);
   sessTimer = setInterval(() => {
     timerSec--;
     updateTimerUI();
     if (timerSec <= 0) {
-      timerSec = 45;
+      timerSec = 120;
       if (activeSession) {
         const newToken = mkToken();
         activeSession.token = newToken;
@@ -748,9 +764,9 @@ function updateTimerUI() {
   const el = document.getElementById('t-sec');
   if (!el) return;
   el.textContent = timerSec;
-  const offset = 188.5 - (timerSec/45)*188.5;
+  const offset = 188.5 - (timerSec/120)*188.5;
   document.getElementById('t-arc').style.strokeDashoffset = offset;
-  const c = timerSec > 12 ? 'var(--accent)' : 'var(--red)';
+  const c = timerSec > 20 ? 'var(--accent)' : 'var(--red)';
   document.getElementById('t-arc').style.stroke = c;
   el.style.color = c;
 }
@@ -776,7 +792,10 @@ function listenAllSessions() {
   unsubSessions = db.collection('sessions')
     .where('active','==',true)
     .onSnapshot(snap => {
-      const sessions = snap.docs.map(d => ({id:d.id,...d.data()}));
+      // Double-filter: only show docs where active is explicitly true
+      const sessions = snap.docs
+        .map(d => ({id:d.id,...d.data()}))
+        .filter(s => s.active === true);
       renderAllSessions(sessions);
     });
 }
