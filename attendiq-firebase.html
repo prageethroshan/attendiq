@@ -544,7 +544,6 @@ function showTeacherDashboard() {
   document.getElementById('t-name-pill').textContent = currentTeacher.name;
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-  cleanupGhostSessions();
   loadSubjects();
   preloadSubjectsIfEmpty();
   listenAllSessions();
@@ -968,61 +967,47 @@ function listenMyScans(sessionId) {
     });
 }
 
-function cleanupGhostSessions() {
-  // Only kill sessions that have NO heartbeat or a stale heartbeat (>90s old)
-  // Never kill sessions that are genuinely active from other teachers
-  db.collection('sessions').where('active','==',true).get().then(snap => {
-    const now = Date.now();
-    const batch = db.batch();
-    let count = 0;
-    snap.docs.forEach(doc => {
-      const s = doc.data();
-      const hb = s.lastHeartbeat;
-      if (!hb) {
-        // No heartbeat field at all — old ghost session, safe to kill
-        batch.update(doc.ref, { active: false });
-        count++;
-      } else {
-        const hbMs = hb.toMillis ? hb.toMillis() : hb;
-        const staleSecs = (now - hbMs) / 1000;
-        if (staleSecs > 90) {
-          // Heartbeat too old — teacher's browser is closed, safe to kill
-          batch.update(doc.ref, { active: false });
-          count++;
-        }
-        // Otherwise: heartbeat is fresh → another teacher is active, leave it alone
-      }
-    });
-    if (count > 0) batch.commit().catch(() => {});
-  }).catch(() => {});
-}
-
 function listenAllSessions() {
   if (unsubSessions) unsubSessions();
   unsubSessions = db.collection('sessions')
     .where('active','==',true)
     .onSnapshot(snap => {
       const now = Date.now();
-      const sessions = snap.docs
-        .map(d => ({id:d.id,...d.data()}))
-        .filter(s => {
-          if (s.active !== true) return false;
-          if (!s.lastHeartbeat) {
-            // No heartbeat field = old ghost session, clean it up
-            db.collection('sessions').doc(s.id).update({ active: false }).catch(() => {});
-            return false;
-          }
-          // Expire sessions whose heartbeat is older than 90 seconds
-          const hbMs = s.lastHeartbeat.toMillis ? s.lastHeartbeat.toMillis() : s.lastHeartbeat;
-          const staleSecs = (now - hbMs) / 1000;
-          if (staleSecs > 90) {
-            db.collection('sessions').doc(s.id).update({ active: false }).catch(() => {});
-            return false;
-          }
-          return true;
-        });
-      renderAllSessions(sessions);
+      const liveSessions = [];
+      snap.docs.forEach(doc => {
+        const s = {id: doc.id, ...doc.data()};
+        if (s.active !== true) return;
+        if (!s.lastHeartbeat) return; // no heartbeat = ghost, skip visually
+        const hbMs = s.lastHeartbeat.toMillis ? s.lastHeartbeat.toMillis() : s.lastHeartbeat;
+        if ((now - hbMs) / 1000 < 90) {
+          liveSessions.push(s); // fresh heartbeat = genuinely live
+        }
+      });
+      renderAllSessions(liveSessions);
+    }, err => {
+      console.error('Session listener error:', err);
     });
+
+  // Background cleanup every 2 minutes — safely kills only stale sessions
+  setInterval(() => {
+    db.collection('sessions').where('active','==',true).get().then(snap => {
+      const now = Date.now();
+      const batch = db.batch();
+      let count = 0;
+      snap.docs.forEach(doc => {
+        const s = doc.data();
+        if (!s.lastHeartbeat) {
+          batch.update(doc.ref, { active: false }); count++;
+        } else {
+          const hbMs = s.lastHeartbeat.toMillis ? s.lastHeartbeat.toMillis() : s.lastHeartbeat;
+          if ((now - hbMs) / 1000 > 90) {
+            batch.update(doc.ref, { active: false }); count++;
+          }
+        }
+      });
+      if (count > 0) batch.commit().catch(() => {});
+    }).catch(() => {});
+  }, 120000);
 }
 
 function listenAllScans() {
@@ -1160,20 +1145,28 @@ function initStudent() {
     return;
   }
 
-  // Validate token against Firebase — no timestamp guessing
-  db.collection('sessions').doc(p.sessionId).get().then(doc => {
-    document.getElementById('sv-loading').style.display = 'none';
-
-    if (!doc.exists) {
-      showSvErr('Session Not Found', 'This session does not exist. Ask your lecturer to start a new session.'); return;
-    }
-    const session = doc.data();
-    if (!session.active) {
-      showSvErr('Session Ended', 'This class session has ended. Ask your lecturer if attendance is still open.'); return;
-    }
-    if (session.token !== p.token) {
-      showSvErr('QR Code Expired', 'This QR code has expired — a new one is now showing on the projector. Please scan the latest QR code.'); return;
-    }
+  // Validate token against Firebase with retry (up to 3 attempts, 2s apart)
+  function checkSession(attemptsLeft) {
+    db.collection('sessions').doc(p.sessionId).get().then(doc => {
+      if (!doc.exists || !doc.data().active) {
+        if (attemptsLeft > 1) {
+          // Retry after 2 seconds — Firebase may be slightly behind
+          setTimeout(() => checkSession(attemptsLeft - 1), 2000);
+          return;
+        }
+        document.getElementById('sv-loading').style.display = 'none';
+        if (!doc.exists) {
+          showSvErr('Session Not Found', 'This session does not exist. Ask your lecturer to check the session is started.');
+        } else {
+          showSvErr('Session Ended', 'This class session has ended. Ask your lecturer if attendance is still open.');
+        }
+        return;
+      }
+      document.getElementById('sv-loading').style.display = 'none';
+      const session = doc.data();
+      if (session.token !== p.token) {
+        showSvErr('QR Code Expired', 'This QR code has expired — a new one is now showing on the projector. Please scan the latest QR code.'); return;
+      }
 
     // Token matches and session is active — show form
     document.getElementById('sv-code').textContent = p.subject;
@@ -1196,11 +1189,17 @@ function initStudent() {
       }).catch(() => {});
     }, 10000);
 
-  }).catch(err => {
-    document.getElementById('sv-loading').style.display = 'none';
-    showSvErr('Connection Error', 'Could not connect to the database. Check your internet connection and try scanning again.');
-    console.error(err);
-  });
+    }).catch(err => {
+      if (attemptsLeft > 1) {
+        setTimeout(() => checkSession(attemptsLeft - 1), 2000);
+        return;
+      }
+      document.getElementById('sv-loading').style.display = 'none';
+      showSvErr('Connection Error', 'Could not connect to the database. Check your internet and try scanning again.');
+      console.error(err);
+    });
+  }
+  checkSession(3); // start with 3 attempts
 }
 
 function submitAttendance() {
