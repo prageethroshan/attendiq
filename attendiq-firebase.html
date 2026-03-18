@@ -704,15 +704,12 @@ function teardownSessionUI() {
 function mkToken() { return Math.random().toString(36).substring(2,10).toUpperCase(); }
 
 function genQR(token, sessionId) {
-  const exp = Date.now() + 45000;
-  if (activeSession) activeSession.currentExp = exp;
   const base = window.location.origin + window.location.pathname;
   const url = base +
     '?s=' + encodeURIComponent(activeSession?.subjectCode || selSubject.code) +
     '&sn=' + encodeURIComponent(activeSession?.subjectName || selSubject.name) +
     '&t=' + token +
     '&sid=' + (sessionId || activeSession.id) +
-    '&exp=' + exp +
     '&l=' + encodeURIComponent(selSubject.lec || '') +
     '&ss=' + (activeSession?.startMs || Date.now()) +
     '&tn=' + encodeURIComponent(currentTeacher.name);
@@ -908,42 +905,58 @@ function initStudent() {
     subjectName: urlP.get('sn') || '',
     token:       urlP.get('t') || '',
     sessionId:   urlP.get('sid') || '',
-    exp:         parseInt(urlP.get('exp') || '0'),
     lec:         urlP.get('l') || '',
     ss:          parseInt(urlP.get('ss') || '0'),
     teacher:     urlP.get('tn') || ''
   };
 
-  setTimeout(() => {
+  if (!p.token || !p.subject || !p.sessionId) {
     document.getElementById('sv-loading').style.display = 'none';
-    if (!p.token || !p.subject || !p.sessionId) {
-      showSvErr('Invalid QR Code', 'This QR code is missing session data. Ask your lecturer to regenerate it.'); return;
+    showSvErr('Invalid QR Code', 'This QR code is missing session data. Ask your lecturer to regenerate it.');
+    return;
+  }
+
+  // Validate token against Firebase — no timestamp guessing
+  db.collection('sessions').doc(p.sessionId).get().then(doc => {
+    document.getElementById('sv-loading').style.display = 'none';
+
+    if (!doc.exists) {
+      showSvErr('Session Not Found', 'This session does not exist. Ask your lecturer to start a new session.'); return;
     }
-    if (Date.now() > p.exp) {
-      showSvErr('QR Code Expired', 'This QR has already expired. Please scan the current QR code shown on the projector.'); return;
+    const session = doc.data();
+    if (!session.active) {
+      showSvErr('Session Ended', 'This class session has ended. Ask your lecturer if attendance is still open.'); return;
+    }
+    if (session.token !== p.token) {
+      showSvErr('QR Code Expired', 'This QR code has expired — a new one is now showing on the projector. Please scan the latest QR code.'); return;
     }
 
+    // Token matches and session is active — show form
     document.getElementById('sv-code').textContent = p.subject;
     document.getElementById('sv-sname').textContent = p.subjectName || p.subject;
     document.getElementById('sv-meta').textContent = p.teacher ? 'Lecturer: '+p.teacher : 'Mark your attendance';
     document.getElementById('sv-form').style.display = '';
+    document.getElementById('sv-timer').textContent = 'Active';
     window._sp = p;
 
-    let tiv = setInterval(() => {
-      const rem = Math.round((p.exp - Date.now()) / 1000);
-      if (rem <= 0) {
-        clearInterval(tiv);
-        showSvErr('QR Expired', 'Scan the new QR code on the projector.');
-      } else {
-        document.getElementById('sv-timer').textContent = rem+'s';
-        if (rem <= 10) {
-          document.getElementById('sv-dot').style.background = 'var(--red)';
-          document.getElementById('sv-timer').style.color = 'var(--red)';
+    // Poll Firebase every 10s to detect if token rotated or session ended
+    window._stiv = setInterval(() => {
+      db.collection('sessions').doc(p.sessionId).get().then(d => {
+        if (!d.exists || !d.data().active) {
+          clearInterval(window._stiv);
+          showSvErr('Session Ended', 'The session has ended. Your attendance was not recorded — please contact your lecturer.');
+        } else if (d.data().token !== p.token) {
+          clearInterval(window._stiv);
+          showSvErr('QR Code Rotated', 'The QR code has refreshed. Please scan the new code on the projector to mark attendance.');
         }
-      }
-    }, 1000);
-    window._stiv = tiv;
-  }, 700);
+      }).catch(() => {});
+    }, 10000);
+
+  }).catch(err => {
+    document.getElementById('sv-loading').style.display = 'none';
+    showSvErr('Connection Error', 'Could not connect to the database. Check your internet connection and try scanning again.');
+    console.error(err);
+  });
 }
 
 function submitAttendance() {
@@ -953,9 +966,7 @@ function submitAttendance() {
   if (!id)   { alert('Please enter your Student ID'); return; }
   if (!name) { alert('Please enter your Full Name'); return; }
   if (!year) { alert('Please select your year'); return; }
-  if (Date.now() > window._sp.exp) {
-    showSvErr('Too Late!', 'The QR code expired. Scan the new code on the projector.'); return;
-  }
+  // Token is re-validated inside Firestore write — no local exp check needed
 
   const btn = document.getElementById('sv-submit');
   btn.disabled = true;
