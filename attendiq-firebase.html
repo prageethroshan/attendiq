@@ -236,9 +236,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <label>Department</label>
       <select id="l-dept">
         <option value="">Select department</option>
-        <option>Computer Science</option><option>Engineering</option>
-        <option>Mathematics</option><option>Physics</option>
-        <option>Business</option><option>Medicine</option><option>Arts</option><option>Other</option>
+        <option>Department of Accountancy and Finance</option><option>Department of Business Management</option><option>Department of Information Systems</option><option>Department of Marketing Management</option><option>Department of Human Resource Management</option><option>Department of Tourism and Hospitality Management</option>
       </select>
     </div>
     <button class="login-btn" onclick="doLogin()">Enter Dashboard →</button>
@@ -279,7 +277,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           </div>
           <div class="frow">
             <div class="fg"><label>Department</label>
-              <select id="i-dept"><option>Computer Science</option><option>Engineering</option><option>Mathematics</option><option>Physics</option><option>Business</option><option>Medicine</option><option>Arts</option><option>Other</option></select>
+              <select id="i-dept"><option>Department of Accountancy and Finance</option><option>Department of Business Management</option><option>Department of Information Systems</option><option>Department of Marketing Management</option><option>Department of Human Resource Management</option><option>Department of Tourism and Hospitality Management</option></select>
             </div>
             <div class="fg"><label>Year / Sem</label>
               <select id="i-year"><option>Year 1 – Sem 1</option><option>Year 1 – Sem 2</option><option>Year 2 – Sem 1</option><option>Year 2 – Sem 2</option><option>Year 3 – Sem 1</option><option>Year 3 – Sem 2</option><option>Year 4 – Sem 1</option><option>Year 4 – Sem 2</option></select>
@@ -546,6 +544,7 @@ function showTeacherDashboard() {
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
   loadSubjects();
+  preloadSubjectsIfEmpty();
   listenAllSessions();
   listenAllScans();
 }
@@ -558,6 +557,66 @@ function goTab(id, btn) {
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
   document.getElementById('t-' + id).classList.add('on');
   btn.classList.add('on');
+}
+
+
+// ══════════════════════════════════════════
+//  PRELOAD SUBJECTS — runs once on first load
+// ══════════════════════════════════════════
+function preloadSubjectsIfEmpty() {
+  db.collection('subjects').limit(1).get().then(snap => {
+    if (!snap.empty) return; // Already has subjects, skip
+    const batch = db.batch();
+    const preset = [
+    {code:"MGT1113",name:"Principles of Management",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 1",lec:"",time:""},
+    {code:"ACF1123",name:"Financial Accounting",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 1",lec:"",time:""},
+    {code:"MGT1133",name:"Micro Economics",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 1",lec:"",time:""},
+    {code:"MGT1143",name:"Business Mathematics",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 1",lec:"",time:""},
+    {code:"ITM1153",name:"Information Technology",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 1",lec:"",time:""},
+    {code:"ELT1162",name:"English Communication Skills",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 1",lec:"",time:""},
+    {code:"MGT1213",name:"Organizational Behavior",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 2",lec:"",time:""},
+    {code:"ACF1224",name:"Advanced Financial Accounting",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 2",lec:"",time:""},
+    {code:"MGT1233",name:"Macro Economics",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 2",lec:"",time:""},
+    {code:"MGT1243",name:"Business Statistics",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 2",lec:"",time:""},
+    {code:"ELT1252",name:"Business English",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 2",lec:"",time:""},
+    {code:"ACF1261",name:"Professional Skills Development I",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 2",lec:"",time:""},
+    {code:"ACF2114",name:"Cost and Management Accounting",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 1",lec:"",time:""},
+    {code:"ACF2123",name:"Taxation",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 1",lec:"",time:""},
+    {code:"MGT2133",name:"Corporate and Business Law",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 1",lec:"",time:""},
+    {code:"MKT2143",name:"Marketing Management",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 1",lec:"",time:""},
+    {code:"ELT2152",name:"Business Communication",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 1",lec:"",time:""},
+    {code:"ACF2213",name:"Advanced Management Accounting",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 2",lec:"",time:""},
+    {code:"ACF2224",name:"Financial Management",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 2",lec:"",time:""},
+    {code:"MGT2233",name:"Operations Management",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 2",lec:"",time:""},
+    {code:"HRM2243",name:"Human Resource Management",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 2",lec:"",time:""},
+    {code:"MIS2243",name:"Management Information Systems",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 2",lec:"",time:""},
+    {code:"ACF2261",name:"Professional Skills Development II",dept:"Department of Accountancy and Finance",year:"Year 2 – Sem 2",lec:"",time:""},
+    {code:"ACF3113",name:"Investment and Portfolio Management",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 1",lec:"",time:""},
+    {code:"ACF3123",name:"Advanced Accounting Theory",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 1",lec:"",time:""},
+    {code:"ACF3133",name:"Auditing and Assurance",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 1",lec:"",time:""},
+    {code:"ACF3143",name:"Management Science",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 1",lec:"",time:""},
+    {code:"ACF3153",name:"Research Methodology - Theory",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 1",lec:"",time:""},
+    {code:"ACF3213",name:"Computer Based Accounting and ERP",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 1",lec:"",time:""},
+    {code:"ACF3223",name:"Financial Modeling and Forecasting",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 2",lec:"",time:""},
+    {code:"ACF3233",name:"Corporate Reporting",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 2",lec:"",time:""},
+    {code:"MGT3243",name:"Strategic Management",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 2",lec:"",time:""},
+    {code:"ACF3252",name:"Research Methodology - Proposal",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 2",lec:"",time:""},
+    {code:"ACF3261",name:"Professional Skills Development III",dept:"Department of Accountancy and Finance",year:"Year 3 – Sem 2",lec:"",time:""},
+    {code:"ACF4114",name:"Financial Statement Analysis",dept:"Department of Accountancy and Finance",year:"Year 4 – Sem 1",lec:"",time:""},
+    {code:"ACF4124",name:"Advanced Audit, Governance and Risk",dept:"Department of Accountancy and Finance",year:"Year 4 – Sem 1",lec:"",time:""},
+    {code:"ACF4133",name:"Forensic Accounting",dept:"Department of Accountancy and Finance",year:"Year 4 – Sem 1",lec:"",time:""},
+    {code:"ACF4143",name:"Bank and Credit Management",dept:"Department of Accountancy and Finance",year:"Year 4 – Sem 1",lec:"",time:""},
+    {code:"ACF4213",name:"Business Valuation",dept:"Department of Accountancy and Finance",year:"Year 4 – Sem 2",lec:"",time:""},
+    {code:"ACF4227",name:"Industrial Training II",dept:"Department of Accountancy and Finance",year:"Year 4 – Sem 2",lec:"",time:""}
+  ];
+  preset.forEach(s => {
+    const ref = db.collection('subjects').doc();
+    batch.set(ref, {...s, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+  });
+  batch.commit()
+    .then(() => notify('42 subjects loaded for Dept. of Accountancy and Finance'))
+    .catch(e => console.error('Preload failed', e));
+  });
 }
 
 // ══════════════════════════════════════════
@@ -656,10 +715,58 @@ function startSession() {
     setupSessionUI();
     genQR(token, ref.id);
     startTimer();
+    startHeartbeat(ref.id);
     listenMyScans(ref.id);
     notify('Session started! Show QR on projector.');
   }).catch(() => notify('Failed to start session','err'));
 }
+
+// ── HEARTBEAT: keeps session alive; stops on tab close ──────────────
+let heartbeatTimer = null;
+
+function startHeartbeat(sessionId) {
+  stopHeartbeat();
+  // Send heartbeat every 30 seconds
+  heartbeatTimer = setInterval(() => {
+    if (!activeSession) { stopHeartbeat(); return; }
+    db.collection('sessions').doc(sessionId).update({
+      lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(() => {});
+  }, 30000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+}
+
+// Mark session inactive when teacher closes/refreshes the page
+window.addEventListener('beforeunload', () => {
+  if (activeSession) {
+    // Use sendBeacon for reliability on page close
+    const url = 'https://firestore.googleapis.com/v1/projects/attendiq-fms/databases/(default)/documents/sessions/' + activeSession.id;
+    // Best-effort Firestore update via fetch (keepalive)
+    fetch('https://firestore.googleapis.com/v1/projects/attendiq-fms/databases/(default)/documents/sessions/' + activeSession.id + '?updateMask.fieldPaths=active&updateMask.fieldPaths=endTime&key=AIzaSyDqJPLqJzKiuit42Q8987tKdU2oLycPwCk', {
+      method: 'PATCH',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          active: { booleanValue: false },
+        }
+      })
+    }).catch(() => {});
+  }
+});
+
+// Also handle tab visibility change (phone screen lock, tab switch)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && activeSession) {
+    // Refresh heartbeat when teacher comes back to tab
+    db.collection('sessions').doc(activeSession.id).update({
+      lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(() => {});
+  }
+});
 
 function stopSession() {
   if (!activeSession) return;
@@ -671,6 +778,7 @@ function stopSession() {
   timerSec = 120;
   teardownSessionUI();
   // Write to Firestore — set active to false
+  stopHeartbeat();
   db.collection('sessions').doc(stoppingId).update({
     active: false,
     endTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -792,10 +900,23 @@ function listenAllSessions() {
   unsubSessions = db.collection('sessions')
     .where('active','==',true)
     .onSnapshot(snap => {
-      // Double-filter: only show docs where active is explicitly true
+      const now = Date.now();
       const sessions = snap.docs
         .map(d => ({id:d.id,...d.data()}))
-        .filter(s => s.active === true);
+        .filter(s => {
+          if (s.active !== true) return false;
+          // Auto-expire: if no heartbeat for 90 seconds, consider session dead
+          if (s.lastHeartbeat) {
+            const hbMs = s.lastHeartbeat.toMillis ? s.lastHeartbeat.toMillis() : s.lastHeartbeat;
+            const staleSecs = (now - hbMs) / 1000;
+            if (staleSecs > 90) {
+              // Clean up ghost session in background
+              db.collection('sessions').doc(s.id).update({ active: false }).catch(() => {});
+              return false;
+            }
+          }
+          return true;
+        });
       renderAllSessions(sessions);
     });
 }
