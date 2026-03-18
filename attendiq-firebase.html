@@ -289,6 +289,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           </div>
           <div class="frow" style="margin-top:4px;">
             <button class="btn btn-p" onclick="addSubject()">+ Add Subject</button>
+            <button class="btn btn-g" onclick="forcePreloadSubjects()" title="Re-load the 42 preset ACF subjects into Firebase">↺ Load ACF Subjects</button>
           </div>
         </div>
         <div class="card">
@@ -543,6 +544,7 @@ function showTeacherDashboard() {
   document.getElementById('t-name-pill').textContent = currentTeacher.name;
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  cleanupGhostSessions();
   loadSubjects();
   preloadSubjectsIfEmpty();
   listenAllSessions();
@@ -564,8 +566,9 @@ function goTab(id, btn) {
 //  PRELOAD SUBJECTS — runs once on first load
 // ══════════════════════════════════════════
 function preloadSubjectsIfEmpty() {
-  db.collection('subjects').limit(1).get().then(snap => {
-    if (!snap.empty) return; // Already has subjects, skip
+  // Check specifically for ACF subjects (not old sample subjects)
+  db.collection('subjects').where('dept','==','Department of Accountancy and Finance').limit(1).get().then(snap => {
+    if (!snap.empty) return; // ACF subjects already exist, skip
     const batch = db.batch();
     const preset = [
     {code:"MGT1113",name:"Principles of Management",dept:"Department of Accountancy and Finance",year:"Year 1 – Sem 1",lec:"",time:""},
@@ -615,7 +618,72 @@ function preloadSubjectsIfEmpty() {
   });
   batch.commit()
     .then(() => notify('42 subjects loaded for Dept. of Accountancy and Finance'))
-    .catch(e => console.error('Preload failed', e));
+    .catch(e => { console.error('Preload failed', e); notify('Preload failed — check console','err'); });
+  });
+}
+
+function forcePreloadSubjects() {
+  if (!confirm('This will add all 42 ACF subjects to Firebase. Any duplicates will be skipped. Continue?')) return;
+  const ACF_SUBJECTS = [
+    {code:"MGT1113",name:"Principles of Management",year:"Year 1 – Sem 1"},
+    {code:"ACF1123",name:"Financial Accounting",year:"Year 1 – Sem 1"},
+    {code:"MGT1133",name:"Micro Economics",year:"Year 1 – Sem 1"},
+    {code:"MGT1143",name:"Business Mathematics",year:"Year 1 – Sem 1"},
+    {code:"ITM1153",name:"Information Technology",year:"Year 1 – Sem 1"},
+    {code:"ELT1162",name:"English Communication Skills",year:"Year 1 – Sem 1"},
+    {code:"MGT1213",name:"Organizational Behavior",year:"Year 1 – Sem 2"},
+    {code:"ACF1224",name:"Advanced Financial Accounting",year:"Year 1 – Sem 2"},
+    {code:"MGT1233",name:"Macro Economics",year:"Year 1 – Sem 2"},
+    {code:"MGT1243",name:"Business Statistics",year:"Year 1 – Sem 2"},
+    {code:"ELT1252",name:"Business English",year:"Year 1 – Sem 2"},
+    {code:"ACF1261",name:"Professional Skills Development I",year:"Year 1 – Sem 2"},
+    {code:"ACF2114",name:"Cost and Management Accounting",year:"Year 2 – Sem 1"},
+    {code:"ACF2123",name:"Taxation",year:"Year 2 – Sem 1"},
+    {code:"MGT2133",name:"Corporate and Business Law",year:"Year 2 – Sem 1"},
+    {code:"MKT2143",name:"Marketing Management",year:"Year 2 – Sem 1"},
+    {code:"ELT2152",name:"Business Communication",year:"Year 2 – Sem 1"},
+    {code:"ACF2213",name:"Advanced Management Accounting",year:"Year 2 – Sem 2"},
+    {code:"ACF2224",name:"Financial Management",year:"Year 2 – Sem 2"},
+    {code:"MGT2233",name:"Operations Management",year:"Year 2 – Sem 2"},
+    {code:"HRM2243",name:"Human Resource Management",year:"Year 2 – Sem 2"},
+    {code:"MIS2243",name:"Management Information Systems",year:"Year 2 – Sem 2"},
+    {code:"ACF2261",name:"Professional Skills Development II",year:"Year 2 – Sem 2"},
+    {code:"ACF3113",name:"Investment and Portfolio Management",year:"Year 3 – Sem 1"},
+    {code:"ACF3123",name:"Advanced Accounting Theory",year:"Year 3 – Sem 1"},
+    {code:"ACF3133",name:"Auditing and Assurance",year:"Year 3 – Sem 1"},
+    {code:"ACF3143",name:"Management Science",year:"Year 3 – Sem 1"},
+    {code:"ACF3153",name:"Research Methodology - Theory",year:"Year 3 – Sem 1"},
+    {code:"ACF3213",name:"Computer Based Accounting and ERP",year:"Year 3 – Sem 1"},
+    {code:"ACF3223",name:"Financial Modeling and Forecasting",year:"Year 3 – Sem 2"},
+    {code:"ACF3233",name:"Corporate Reporting",year:"Year 3 – Sem 2"},
+    {code:"MGT3243",name:"Strategic Management",year:"Year 3 – Sem 2"},
+    {code:"ACF3252",name:"Research Methodology - Proposal",year:"Year 3 – Sem 2"},
+    {code:"ACF3261",name:"Professional Skills Development III",year:"Year 3 – Sem 2"},
+    {code:"ACF4114",name:"Financial Statement Analysis",year:"Year 4 – Sem 1"},
+    {code:"ACF4124",name:"Advanced Audit, Governance and Risk",year:"Year 4 – Sem 1"},
+    {code:"ACF4133",name:"Forensic Accounting",year:"Year 4 – Sem 1"},
+    {code:"ACF4143",name:"Bank and Credit Management",year:"Year 4 – Sem 1"},
+    {code:"ACF4213",name:"Business Valuation",year:"Year 4 – Sem 2"},
+    {code:"ACF4227",name:"Industrial Training II",year:"Year 4 – Sem 2"}
+  ];
+  // Get existing codes to skip duplicates
+  db.collection('subjects').where('dept','==','Department of Accountancy and Finance').get().then(existing => {
+    const existingCodes = new Set(existing.docs.map(d => d.data().code));
+    const toAdd = ACF_SUBJECTS.filter(s => !existingCodes.has(s.code));
+    if (!toAdd.length) { notify('All ACF subjects already exist in Firebase'); return; }
+    const batch = db.batch();
+    toAdd.forEach(s => {
+      const ref = db.collection('subjects').doc();
+      batch.set(ref, {
+        code: s.code, name: s.name,
+        dept: 'Department of Accountancy and Finance',
+        year: s.year, lec: '', time: '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    batch.commit()
+      .then(() => notify(toAdd.length + ' ACF subjects added to Firebase ✓'))
+      .catch(() => notify('Failed to load subjects','err'));
   });
 }
 
@@ -895,6 +963,18 @@ function listenMyScans(sessionId) {
     });
 }
 
+function cleanupGhostSessions() {
+  // Mark ALL currently-active sessions as inactive on login.
+  // This clears any ghost sessions from previous runs.
+  db.collection('sessions').where('active','==',true).get().then(snap => {
+    const batch = db.batch();
+    snap.docs.forEach(doc => {
+      batch.update(doc.ref, { active: false });
+    });
+    if (!snap.empty) batch.commit().catch(() => {});
+  }).catch(() => {});
+}
+
 function listenAllSessions() {
   if (unsubSessions) unsubSessions();
   unsubSessions = db.collection('sessions')
@@ -905,15 +985,17 @@ function listenAllSessions() {
         .map(d => ({id:d.id,...d.data()}))
         .filter(s => {
           if (s.active !== true) return false;
-          // Auto-expire: if no heartbeat for 90 seconds, consider session dead
-          if (s.lastHeartbeat) {
-            const hbMs = s.lastHeartbeat.toMillis ? s.lastHeartbeat.toMillis() : s.lastHeartbeat;
-            const staleSecs = (now - hbMs) / 1000;
-            if (staleSecs > 90) {
-              // Clean up ghost session in background
-              db.collection('sessions').doc(s.id).update({ active: false }).catch(() => {});
-              return false;
-            }
+          if (!s.lastHeartbeat) {
+            // No heartbeat field = old ghost session, clean it up
+            db.collection('sessions').doc(s.id).update({ active: false }).catch(() => {});
+            return false;
+          }
+          // Expire sessions whose heartbeat is older than 90 seconds
+          const hbMs = s.lastHeartbeat.toMillis ? s.lastHeartbeat.toMillis() : s.lastHeartbeat;
+          const staleSecs = (now - hbMs) / 1000;
+          if (staleSecs > 90) {
+            db.collection('sessions').doc(s.id).update({ active: false }).catch(() => {});
+            return false;
           }
           return true;
         });
