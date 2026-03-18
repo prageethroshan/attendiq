@@ -205,6 +205,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 .notif{position:fixed;bottom:20px;right:20px;background:var(--surface);border-radius:var(--rs);padding:10px 16px;font-size:12px;font-weight:600;z-index:999;animation:slin 0.25s ease;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
 @keyframes slin{from{transform:translateY(14px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* ── SUMMARY TAB ── */
+.sum-filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.sum-filters select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;max-width:280px;}
+.sum-filters select:focus{border-color:var(--accent);}
+.sum-filters select option{background:#1b2035;}
+.sum-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+@media(max-width:700px){.sum-stats{grid-template-columns:repeat(2,1fr);}}
+.att-bar-wrap{width:100%;background:var(--surface2);border-radius:20px;height:7px;min-width:60px;}
+.att-bar{height:7px;border-radius:20px;transition:width 0.4s;}
+.bar-green{background:var(--green);}
+.bar-amber{background:var(--accent);}
+.bar-red{background:var(--red);}
+.pct-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;min-width:42px;text-align:center;}
+.pct-green{background:var(--green-bg);color:var(--green);}
+.pct-amber{background:var(--accent-bg);color:var(--accent);}
+.pct-red{background:var(--red-bg);color:var(--red);}
+.legend{display:flex;gap:14px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.leg-dot{width:9px;height:9px;border-radius:50%;}
+.absent-list{font-size:10px;color:var(--text3);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sum-empty{text-align:center;padding:3rem;color:var(--text3);font-size:13px;}
 </style>
 </head>
 <body>
@@ -261,6 +283,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="nb" onclick="goTab('session',this)">My Session</button>
     <button class="nb" onclick="goTab('live',this)">All Live Sessions</button>
     <button class="nb" onclick="goTab('log',this)">Attendance Log</button>
+    <button class="nb" onclick="goTab('summary',this)">Student Summary</button>
   </div>
   <div class="main">
 
@@ -401,6 +424,59 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <thead><tr><th>Subject</th><th>Teacher</th><th>Student ID</th><th>Name</th><th>Year</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
           <tbody id="log-body"><tr><td colspan="8" class="tbl-empty">Loading records…</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- STUDENT SUMMARY TAB -->
+    <div class="tab" id="t-summary">
+      <div class="pg-title">Student Attendance Summary</div>
+      <div class="pg-sub">Per-student attendance across all sessions — updated live from Firebase</div>
+
+      <div class="sum-stats">
+        <div class="scard"><div class="slbl">Total Students</div><div class="sval" id="sum-total">—</div></div>
+        <div class="scard"><div class="slbl">Above 75%</div><div class="sval gn" id="sum-good">—</div></div>
+        <div class="scard"><div class="slbl">Below 75%</div><div class="sval am" id="sum-warn">—</div></div>
+        <div class="scard"><div class="slbl">Below 50%</div><div class="sval" style="color:var(--red);" id="sum-danger">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="sum-filters">
+          <select id="sf-subj" onchange="renderSummary()"><option value="">All Subjects</option></select>
+          <select id="sf-year" onchange="renderSummary()"><option value="">All Years</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
+          <select id="sf-status" onchange="renderSummary()">
+            <option value="">All Students</option>
+            <option value="danger">Below 50% only</option>
+            <option value="warn">Below 75% only</option>
+            <option value="good">Above 75% only</option>
+          </select>
+          <button class="btn btn-g btn-sm" onclick="document.getElementById('sf-subj').value='';document.getElementById('sf-year').value='';document.getElementById('sf-status').value='';renderSummary();">Clear</button>
+          <button class="btn btn-p btn-sm" onclick="exportSummary()" style="margin-left:auto;">Export CSV</button>
+        </div>
+        <div class="legend">
+          <span class="leg-item"><span class="leg-dot" style="background:var(--green);"></span>Above 75% — Good</span>
+          <span class="leg-item"><span class="leg-dot" style="background:var(--accent);"></span>50–75% — Warning</span>
+          <span class="leg-item"><span class="leg-dot" style="background:var(--red);"></span>Below 50% — Danger</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="tbl" id="sum-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Year</th>
+                <th>Subject</th>
+                <th>Sessions</th>
+                <th>Attended</th>
+                <th>Absent</th>
+                <th>Attendance</th>
+                <th>Absent Dates</th>
+              </tr>
+            </thead>
+            <tbody id="sum-body">
+              <tr><td colspan="9" class="sum-empty">Select a subject to view student attendance summary.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -558,6 +634,8 @@ function goTab(id, btn) {
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
   document.getElementById('t-' + id).classList.add('on');
   btn.classList.add('on');
+  if (id === 'log') refreshLogTab();
+  if (id === 'summary') refreshSummaryTab();
 }
 
 
@@ -1015,6 +1093,10 @@ function listenAllScans() {
     allScans = snap.docs.map(d => ({id:d.id,...d.data()}));
     updateLogStats();
     renderLog();
+    // Refresh summary if it's the active tab
+    if (document.getElementById('t-summary').classList.contains('on')) {
+      refreshSummaryTab();
+    }
   });
 }
 
@@ -1202,6 +1284,34 @@ function initStudent() {
   checkSession(3); // start with 3 attempts
 }
 
+// ── DEVICE FINGERPRINT ──────────────────────────────────────────────
+// Generates a unique ID for this device and stores it in localStorage.
+// Same device always gets the same ID — used to block multi-submissions.
+function getDeviceId() {
+  let did = localStorage.getItem('attendiq_device_id');
+  if (!did) {
+    // Build a fingerprint from browser properties + random component
+    const fp = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      screen.colorDepth,
+      new Date().getTimezoneOffset(),
+      navigator.hardwareConcurrency || '',
+      navigator.platform || ''
+    ].join('|');
+    // Hash it into a short ID
+    let hash = 0;
+    for (let i = 0; i < fp.length; i++) {
+      hash = ((hash << 5) - hash) + fp.charCodeAt(i);
+      hash |= 0;
+    }
+    did = 'dev_' + Math.abs(hash).toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+    localStorage.setItem('attendiq_device_id', did);
+  }
+  return did;
+}
+
 function submitAttendance() {
   const id   = document.getElementById('sv-id').value.trim();
   const name = document.getElementById('sv-fname').value.trim();
@@ -1209,11 +1319,11 @@ function submitAttendance() {
   if (!id)   { alert('Please enter your Student ID'); return; }
   if (!name) { alert('Please enter your Full Name'); return; }
   if (!year) { alert('Please select your year'); return; }
-  // Token is re-validated inside Firestore write — no local exp check needed
 
+  const deviceId = getDeviceId();
   const btn = document.getElementById('sv-submit');
   btn.disabled = true;
-  btn.textContent = 'Saving…';
+  btn.textContent = 'Verifying…';
 
   const p = window._sp;
   const minsDiff = p.ss ? Math.round((Date.now()-p.ss)/60000) : 0;
@@ -1222,42 +1332,60 @@ function submitAttendance() {
   const timeStr = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const dateStr = now.toLocaleDateString('en-CA');
 
-  // Check for duplicates first
+  // Check 1 — Has this DEVICE already submitted for this session?
   db.collection('attendance')
     .where('sessionId','==',p.sessionId)
-    .where('studentId','==',id)
+    .where('deviceId','==',deviceId)
     .get()
-    .then(snap => {
-      if (!snap.empty) {
+    .then(deviceSnap => {
+      if (!deviceSnap.empty) {
         btn.disabled = false;
         btn.textContent = 'Mark My Attendance';
-        showSvErr('Already Marked', 'Your attendance for this session has already been recorded.');
+        showSvErr('Already Submitted',
+          'Attendance has already been marked from this device for this session. Each device can only submit once.');
         return;
       }
-      // Save to Firestore
-      return db.collection('attendance').add({
-        sessionId: p.sessionId,
-        subjectCode: p.subject,
-        subjectName: p.subjectName,
-        teacherName: p.teacher,
-        studentId: id,
-        studentName: name,
-        year,
-        date: dateStr,
-        time: timeStr,
-        token: p.token,
-        status,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        // Update scan count on session
-        db.collection('sessions').doc(p.sessionId)
-          .update({ scanCount: firebase.firestore.FieldValue.increment(1) });
 
-        clearInterval(window._stiv);
-        document.getElementById('sv-form').style.display = 'none';
-        document.getElementById('sv-ok').style.display = '';
-        document.getElementById('sv-r-id').textContent = id;
-        document.getElementById('sv-r-name').textContent = name;
+      // Check 2 — Has this STUDENT ID already been submitted for this session?
+      return db.collection('attendance')
+        .where('sessionId','==',p.sessionId)
+        .where('studentId','==',id)
+        .get()
+        .then(idSnap => {
+          if (!idSnap.empty) {
+            btn.disabled = false;
+            btn.textContent = 'Mark My Attendance';
+            showSvErr('Already Marked',
+              'Attendance for Student ID ' + id + ' has already been recorded for this session.');
+            return;
+          }
+
+          btn.textContent = 'Saving…';
+          // Both checks passed — save to Firestore
+          return db.collection('attendance').add({
+            sessionId: p.sessionId,
+            subjectCode: p.subject,
+            subjectName: p.subjectName,
+            teacherName: p.teacher,
+            studentId: id,
+            studentName: name,
+            year,
+            date: dateStr,
+            time: timeStr,
+            token: p.token,
+            deviceId,
+            status,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(() => {
+            // Update scan count on session
+            db.collection('sessions').doc(p.sessionId)
+              .update({ scanCount: firebase.firestore.FieldValue.increment(1) });
+
+            clearInterval(window._stiv);
+            document.getElementById('sv-form').style.display = 'none';
+            document.getElementById('sv-ok').style.display = '';
+            document.getElementById('sv-r-id').textContent = id;
+            document.getElementById('sv-r-name').textContent = name;
         document.getElementById('sv-r-subj').textContent = p.subject+(p.subjectName?' — '+p.subjectName:'');
         document.getElementById('sv-r-teacher').textContent = p.teacher || '—';
         document.getElementById('sv-r-time').textContent = timeStr;
@@ -1280,6 +1408,176 @@ function showSvErr(title, msg) {
   document.getElementById('sv-err').style.display='';
   document.getElementById('sv-err-title').textContent=title;
   document.getElementById('sv-err-msg').textContent=msg;
+}
+
+// ══════════════════════════════════════════
+//  STUDENT SUMMARY
+// ══════════════════════════════════════════
+function refreshSummaryTab() {
+  // Populate subject filter with subjects that have attendance data
+  const sf = document.getElementById('sf-subj');
+  const cur = sf.value;
+  sf.innerHTML = '<option value="">All Subjects</option>';
+  [...new Set(allScans.map(s => s.subjectCode))].sort().forEach(code => {
+    sf.innerHTML += `<option value="${code}" ${cur===code?'selected':''}>${code}</option>`;
+  });
+  renderSummary();
+}
+
+function renderSummary() {
+  const subjFilter   = document.getElementById('sf-subj').value;
+  const yearFilter   = document.getElementById('sf-year').value;
+  const statusFilter = document.getElementById('sf-status').value;
+
+  // Get all unique session dates per subject
+  // We need to know how many sessions ran for each subject
+  // Group scans by subjectCode → sessionId to count unique sessions
+  const sessionsBySubject = {};
+  const sessionDateMap = {};
+  allScans.forEach(r => {
+    if (!sessionsBySubject[r.subjectCode]) sessionsBySubject[r.subjectCode] = new Set();
+    sessionsBySubject[r.subjectCode].add(r.sessionId);
+    // Map sessionId → date for absent date display
+    if (!sessionDateMap[r.sessionId]) sessionDateMap[r.sessionId] = r.date;
+  });
+
+  // Build per-student summary: key = subjectCode|studentId
+  const summary = {};
+  allScans.forEach(r => {
+    const key = r.subjectCode + '|' + r.studentId;
+    if (!summary[key]) {
+      summary[key] = {
+        studentId:   r.studentId,
+        studentName: r.studentName,
+        year:        r.year || '—',
+        subjectCode: r.subjectCode,
+        attended:    new Set(),
+        allSessions: sessionsBySubject[r.subjectCode]
+      };
+    }
+    if (r.status === 'Present' || r.status === 'Late') {
+      summary[key].attended.add(r.sessionId);
+    }
+  });
+
+  // Convert to array and calculate stats
+  let rows = Object.values(summary).map(s => {
+    const totalSessions = s.allSessions ? s.allSessions.size : 0;
+    const attended      = s.attended.size;
+    const absent        = totalSessions - attended;
+    const pct           = totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
+
+    // Find absent session dates
+    const attendedIds  = s.attended;
+    const allSessionIds = s.allSessions ? [...s.allSessions] : [];
+    const absentDates  = allSessionIds
+      .filter(sid => !attendedIds.has(sid))
+      .map(sid => sessionDateMap[sid] || '?')
+      .filter(Boolean)
+      .sort();
+
+    return {
+      ...s,
+      totalSessions,
+      attended,
+      absent,
+      pct,
+      absentDates
+    };
+  });
+
+  // Apply filters
+  if (subjFilter) rows = rows.filter(r => r.subjectCode === subjFilter);
+  if (yearFilter) rows = rows.filter(r => r.year === yearFilter);
+  if (statusFilter === 'good')   rows = rows.filter(r => r.pct >= 75);
+  if (statusFilter === 'warn')   rows = rows.filter(r => r.pct < 75);
+  if (statusFilter === 'danger') rows = rows.filter(r => r.pct < 50);
+
+  // Sort: lowest attendance first (most at-risk at top)
+  rows.sort((a,b) => a.pct - b.pct);
+
+  // Update stat cards
+  const good   = rows.filter(r => r.pct >= 75).length;
+  const warn   = rows.filter(r => r.pct < 75).length;
+  const danger = rows.filter(r => r.pct < 50).length;
+  document.getElementById('sum-total').textContent  = rows.length;
+  document.getElementById('sum-good').textContent   = good;
+  document.getElementById('sum-warn').textContent   = warn;
+  document.getElementById('sum-danger').textContent = danger;
+
+  // Render table
+  const tbody = document.getElementById('sum-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="sum-empty">No attendance records found for the selected filters.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const pctClass = r.pct >= 75 ? 'pct-green' : r.pct >= 50 ? 'pct-amber' : 'pct-red';
+    const barClass = r.pct >= 75 ? 'bar-green' : r.pct >= 50 ? 'bar-amber' : 'bar-red';
+    const absentStr = r.absentDates.length
+      ? r.absentDates.join(', ')
+      : '<span style="color:var(--green);font-size:11px;">No absences ✓</span>';
+    return `<tr>
+      <td style="font-family:monospace;color:var(--accent);font-size:11px;">${r.studentId}</td>
+      <td style="font-weight:500;">${r.studentName}</td>
+      <td style="color:var(--text2);">${r.year}</td>
+      <td><span class="sbadge" style="font-size:10px;">${r.subjectCode}</span></td>
+      <td style="text-align:center;color:var(--text2);">${r.totalSessions}</td>
+      <td style="text-align:center;color:var(--green);font-weight:600;">${r.attended}</td>
+      <td style="text-align:center;color:var(--red);font-weight:600;">${r.absent}</td>
+      <td style="min-width:130px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="att-bar-wrap"><div class="att-bar ${barClass}" style="width:${r.pct}%;"></div></div>
+          <span class="pct-badge ${pctClass}">${r.pct}%</span>
+        </div>
+      </td>
+      <td class="absent-list" title="${r.absentDates.join(', ')}">${absentStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportSummary() {
+  const subjFilter = document.getElementById('sf-subj').value;
+  const yearFilter = document.getElementById('sf-year').value;
+
+  const sessionsBySubject = {};
+  const sessionDateMap = {};
+  allScans.forEach(r => {
+    if (!sessionsBySubject[r.subjectCode]) sessionsBySubject[r.subjectCode] = new Set();
+    sessionsBySubject[r.subjectCode].add(r.sessionId);
+    if (!sessionDateMap[r.sessionId]) sessionDateMap[r.sessionId] = r.date;
+  });
+
+  const summary = {};
+  allScans.forEach(r => {
+    const key = r.subjectCode + '|' + r.studentId;
+    if (!summary[key]) {
+      summary[key] = {
+        studentId: r.studentId, studentName: r.studentName,
+        year: r.year || '—', subjectCode: r.subjectCode,
+        attended: new Set(), allSessions: sessionsBySubject[r.subjectCode]
+      };
+    }
+    if (r.status === 'Present' || r.status === 'Late') summary[key].attended.add(r.sessionId);
+  });
+
+  let rows = Object.values(summary).map(s => {
+    const total = s.allSessions ? s.allSessions.size : 0;
+    const att   = s.attended.size;
+    const pct   = total > 0 ? Math.round((att/total)*100) : 0;
+    const flag  = pct >= 75 ? 'Good' : pct >= 50 ? 'Warning' : 'Danger';
+    const absentDates = [...(s.allSessions||[])].filter(sid => !s.attended.has(sid))
+      .map(sid => sessionDateMap[sid]||'?').sort().join('; ');
+    return [s.subjectCode, s.studentId, s.studentName, s.year, total, att, total-att, pct+'%', flag, absentDates];
+  });
+
+  if (subjFilter) rows = rows.filter(r => r[0] === subjFilter);
+  if (yearFilter) rows = rows.filter(r => r[3] === yearFilter);
+  rows.sort((a,b) => parseInt(a[7]) - parseInt(b[7]));
+
+  const headers = [['Subject','Student ID','Name','Year','Total Sessions','Attended','Absent','Attendance %','Status','Absent Dates']];
+  dlCSV([...headers, ...rows], 'student_summary_' + new Date().toLocaleDateString('en-CA') + '.csv');
 }
 
 // ══════════════════════════════════════════
