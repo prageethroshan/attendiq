@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AttendIQ</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0c0f1a;--surface:#141826;--surface2:#1b2035;--surface3:#222843;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#e6e9f4;--text2:#7e86a0;--text3:#4a5168;
+  --accent:#f5a623;--accent2:#ffc145;--accent-bg:rgba(245,166,35,0.1);--accent-bd:rgba(245,166,35,0.25);
+  --green:#27d9a0;--green-bg:rgba(39,217,160,0.1);--green-bd:rgba(39,217,160,0.25);
+  --red:#f05c5c;--red-bg:rgba(240,92,92,0.1);--red-bd:rgba(240,92,92,0.25);
+  --blue:#5b9cf6;--blue-bg:rgba(91,156,246,0.1);--blue-bd:rgba(91,156,246,0.25);
+  --r:12px;--rs:8px;--rxs:5px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+
+/* ── TEACHER ── */
+.tv{display:none;}.tv.on{display:block;}
+
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.brand{display:flex;align-items:center;gap:9px;}
+.bico{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;}
+.bico svg{width:16px;height:16px;fill:#0c0f1a;}
+.bname{font-family:'DM Serif Display',serif;font-size:17px;}
+.bname em{color:var(--accent);font-style:normal;}
+.hdr-r{display:flex;align-items:center;gap:10px;}
+.teacher-pill{background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:20px;padding:3px 11px;font-size:12px;font-weight:600;color:var(--blue);display:flex;align-items:center;gap:5px;}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pls 2s infinite;}
+@keyframes pls{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 1.5rem;}
+.nb{padding:11px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.nb:hover{color:var(--text);}
+.nb.on{color:var(--accent);border-bottom-color:var(--accent);}
+
+.main{max-width:1080px;margin:0 auto;padding:1.75rem 1.5rem;}
+.tab{display:none;}.tab.on{display:block;}
+.pg-title{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:4px;}
+.pg-sub{color:var(--text2);font-size:13px;margin-bottom:1.75rem;}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+@media(max-width:720px){.g2,.sg{grid-template-columns:1fr !important;}.g4{grid-template-columns:repeat(2,1fr);}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;}
+.ctitle{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.9px;color:var(--text2);margin-bottom:1rem;}
+
+.frow{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.fg{display:flex;flex-direction:column;gap:5px;flex:1;min-width:110px;}
+.fg label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);}
+.fg input,.fg select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;transition:border-color 0.15s;}
+.fg input:focus,.fg select:focus{border-color:var(--accent);}
+.fg select option{background:#1b2035;}
+
+.btn{padding:8px 16px;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.12s;}
+.btn:active{transform:scale(0.97);}
+.btn-p{background:var(--accent);color:#0c0f1a;}.btn-p:hover{background:var(--accent2);}
+.btn-d{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}.btn-d:hover{background:rgba(240,92,92,0.18);}
+.btn-g{background:var(--surface2);color:var(--text);border:1px solid var(--border);}.btn-g:hover{border-color:var(--border2);}
+.btn-sm{padding:5px 11px;font-size:11px;}
+
+.slist{display:flex;flex-direction:column;gap:7px;max-height:380px;overflow-y:auto;}
+.slist::-webkit-scrollbar{width:4px;}.slist::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+.si{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.si-l{display:flex;align-items:center;gap:10px;}
+.sbadge{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-bd);border-radius:var(--rxs);padding:3px 9px;font-size:11px;font-weight:700;min-width:62px;text-align:center;white-space:nowrap;}
+.si-name{font-size:13px;font-weight:500;}
+.si-meta{font-size:11px;color:var(--text2);margin-top:1px;}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text3);font-size:13px;}
+
+/* Sessions list */
+.active-sessions{margin-bottom:16px;}
+.as-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.as-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
+.as-card{background:var(--surface2);border:1px solid var(--green-bd);border-radius:var(--rs);padding:12px 14px;}
+.as-card .ac-code{color:var(--accent);font-size:11px;font-weight:700;letter-spacing:0.5px;}
+.as-card .ac-name{font-size:13px;font-weight:500;margin-top:2px;}
+.as-card .ac-teacher{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px;}
+.as-card .ac-count{font-size:11px;color:var(--green);margin-top:4px;font-weight:600;}
+
+.sg{display:grid;grid-template-columns:1fr 360px;gap:16px;}
+.spick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:1.25rem;}
+.spick{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+.spick:hover{border-color:var(--accent);}
+.spick.sel{border-color:var(--accent);background:var(--accent-bg);}
+.spick .sp-code{color:var(--accent);font-size:11px;font-weight:700;}
+.spick .sp-name{font-size:13px;font-weight:500;margin-top:2px;}
+.spick .sp-dept{font-size:11px;color:var(--text2);}
+
+.qr-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.qr-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.qr-hdr-info .lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.9px;color:var(--text2);font-weight:600;}
+.qr-hdr-info .val{font-size:14px;font-weight:600;margin-top:2px;}
+.sdot-row{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;}
+.dot{width:7px;height:7px;border-radius:50%;}
+.dot-g{background:var(--green);animation:pls 2s infinite;}
+.dot-off{background:var(--text3);}
+
+.qr-body{padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.qr-wrap{background:#fff;padding:12px;border-radius:10px;width:210px;height:210px;display:flex;align-items:center;justify-content:center;}
+#qrcode{display:flex;align-items:center;justify-content:center;}
+#qrcode canvas,#qrcode img{width:186px !important;height:186px !important;}
+.qr-ph{text-align:center;color:#bbb;}
+.qr-ph p{font-size:12px;color:#999;margin-top:6px;}
+
+.t-ring{display:flex;align-items:center;gap:14px;width:100%;justify-content:center;}
+.t-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;}
+.t-svg{transform:rotate(-90deg);}
+.t-bg{fill:none;stroke:var(--surface2);stroke-width:4;}
+.t-arc{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke 0.3s;}
+.t-txt{position:absolute;text-align:center;display:flex;flex-direction:column;align-items:center;}
+.t-sec{font-size:22px;font-weight:700;color:var(--accent);font-family:'DM Serif Display',serif;}
+.t-lbl{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;}
+.t-info{font-size:11px;color:var(--text2);}
+.t-info strong{color:var(--text);display:block;margin-bottom:2px;}
+
+.tok-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rxs);padding:8px 12px;font-family:monospace;font-size:11px;color:var(--text2);text-align:center;width:100%;}
+.tok-box b{color:var(--accent);}
+.hint{font-size:11px;color:var(--text2);line-height:1.65;width:100%;}
+.hint strong{color:var(--text);}
+
+.log-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.live-pill{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
+
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:600;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:12px;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--surface2);}
+.tbl-empty{text-align:center;color:var(--text3);padding:2rem;font-size:12px;}
+
+.bp{background:var(--green-bg);color:var(--green);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;}
+.bl{background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;}
+
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:14px;}
+.slbl{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:600;margin-bottom:5px;}
+.sval{font-family:'DM Serif Display',serif;font-size:26px;}
+.sval.gn{color:var(--green);}.sval.am{color:var(--accent);}
+
+.filt{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;}
+.filt select,.filt input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;max-width:200px;}
+.filt select option{background:#1b2035;}
+
+/* Loading overlay */
+.fb-loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;}
+.fb-loading.hidden{display:none;}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:rot 0.7s linear infinite;}
+@keyframes rot{to{transform:rotate(360deg);}}
+
+/* Teacher login */
+.login-overlay{position:fixed;inset:0;background:rgba(12,15,26,0.95);display:flex;align-items:center;justify-content:center;z-index:100;padding:1.5rem;}
+.login-overlay.hidden{display:none;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:2rem;width:100%;max-width:380px;text-align:center;}
+.login-title{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:6px;}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:1.75rem;line-height:1.6;}
+.login-fg{text-align:left;margin-bottom:12px;}
+.login-fg label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);margin-bottom:6px;}
+.login-fg input,.login-fg select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.15s;}
+.login-fg input:focus,.login-fg select:focus{border-color:var(--accent);}
+.login-btn{width:100%;padding:12px;background:var(--accent);color:#0c0f1a;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;transition:background 0.12s;}
+.login-btn:hover{background:var(--accent2);}
+
+/* ── STUDENT ── */
+.sv{display:none;}
+.sv.on{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.25rem;background:var(--bg);}
+.s-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.75rem 1.5rem;width:100%;max-width:400px;}
+.s-brand{display:flex;align-items:center;gap:9px;margin-bottom:1.5rem;}
+.s-bico{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.s-bico svg{width:18px;height:18px;fill:#0c0f1a;}
+.s-bname{font-family:'DM Serif Display',serif;font-size:18px;}
+.s-bname em{color:var(--accent);font-style:normal;}
+.s-sbanner{background:var(--accent-bg);border:1px solid var(--accent-bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:1.25rem;display:flex;align-items:center;gap:10px;}
+.s-code{background:var(--accent);color:#0c0f1a;font-weight:700;font-size:12px;padding:3px 9px;border-radius:5px;white-space:nowrap;}
+.s-subj-info .sn{font-size:14px;font-weight:500;}
+.s-subj-info .sm{font-size:11px;color:var(--text2);margin-top:1px;}
+.s-status{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-size:12px;margin-bottom:1.25rem;}
+.s-fg{margin-bottom:12px;}
+.s-fg label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:6px;}
+.s-fg input,.s-fg select{width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,0.09);border-radius:var(--rs);padding:12px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color 0.15s;-webkit-appearance:none;}
+.s-fg input:focus,.s-fg select:focus{border-color:var(--accent);}
+.s-fg input::placeholder{color:var(--text2);}
+.s-fg select option{background:#1b2035;}
+.s-btn{width:100%;padding:13px;background:var(--accent);color:#0c0f1a;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;transition:background 0.12s,transform 0.1s;}
+.s-btn:hover{background:var(--accent2);}
+.s-btn:active{transform:scale(0.98);}
+.s-btn:disabled{background:var(--surface2);color:var(--text2);cursor:not-allowed;}
+.s-note{font-size:11px;color:var(--text2);text-align:center;margin-top:10px;line-height:1.6;}
+.s-result{text-align:center;padding:1rem 0;}
+.s-ico{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;}
+.s-ico.ok{background:var(--green-bg);border:2px solid var(--green);}
+.s-ico.ok svg{width:30px;height:30px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.s-ico.err{background:var(--red-bg);border:2px solid var(--red);}
+.s-ico.err svg{width:30px;height:30px;stroke:var(--red);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.s-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:7px;}
+.s-title.ok{color:var(--green);}.s-title.err{color:var(--red);}
+.s-desc{font-size:13px;color:var(--text2);line-height:1.6;}
+.s-detail{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;margin:1.1rem 0;text-align:left;}
+.dr{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}
+.dk{color:var(--text2);}.dv{font-weight:500;}
+
+.notif{position:fixed;bottom:20px;right:20px;background:var(--surface);border-radius:var(--rs);padding:10px 16px;font-size:12px;font-weight:600;z-index:999;animation:slin 0.25s ease;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+@keyframes slin{from{transform:translateY(14px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+</style>
+</head>
+<body>
+
+<!-- Firebase Loading -->
+<div class="fb-loading" id="fb-loading">
+  <div class="bico" style="width:44px;height:44px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="#0c0f1a"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+  </div>
+  <div class="spin"></div>
+  <p style="font-size:13px;color:var(--text2);" id="fb-status">Connecting to database…</p>
+</div>
+
+<!-- Teacher Login -->
+<div class="login-overlay hidden" id="login-overlay">
+  <div class="login-card">
+    <div style="display:flex;justify-content:center;margin-bottom:1.25rem;">
+      <div class="bico" style="width:44px;height:44px;border-radius:10px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#0c0f1a"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+      </div>
+    </div>
+    <div class="login-title">Attend<span style="color:var(--accent);">IQ</span></div>
+    <div class="login-sub">Faculty Attendance System<br>Enter your details to continue</div>
+    <div class="login-fg">
+      <label>Your Name</label>
+      <input type="text" id="l-name" placeholder="e.g. Dr. Perera">
+    </div>
+    <div class="login-fg">
+      <label>Department</label>
+      <select id="l-dept">
+        <option value="">Select department</option>
+        <option>Computer Science</option><option>Engineering</option>
+        <option>Mathematics</option><option>Physics</option>
+        <option>Business</option><option>Medicine</option><option>Arts</option><option>Other</option>
+      </select>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Enter Dashboard →</button>
+    <p style="font-size:11px;color:var(--text3);margin-top:12px;">No password required. Your name identifies your sessions.</p>
+  </div>
+</div>
+
+<!-- ══ TEACHER VIEW ══ -->
+<div class="tv" id="tv">
+  <div class="hdr">
+    <div class="brand">
+      <div class="bico"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></div>
+      <span class="bname">Attend<em>IQ</em></span>
+    </div>
+    <div class="hdr-r">
+      <div class="teacher-pill"><span class="online-dot"></span><span id="t-name-pill">Teacher</span></div>
+      <div style="font-size:11px;color:var(--text3);" id="hdr-date"></div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="nb on" onclick="goTab('subjects',this)">Subjects</button>
+    <button class="nb" onclick="goTab('session',this)">My Session</button>
+    <button class="nb" onclick="goTab('live',this)">All Live Sessions</button>
+    <button class="nb" onclick="goTab('log',this)">Attendance Log</button>
+  </div>
+  <div class="main">
+
+    <!-- SUBJECTS -->
+    <div class="tab on" id="t-subjects">
+      <div class="pg-title">Subject Management</div>
+      <div class="pg-sub">Subjects are shared across all teachers</div>
+      <div class="g2">
+        <div class="card">
+          <div class="ctitle">Add Subject</div>
+          <div class="frow">
+            <div class="fg" style="max-width:120px;"><label>Code</label><input id="i-code" type="text" placeholder="CS301" maxlength="10"></div>
+            <div class="fg"><label>Subject Name</label><input id="i-name" type="text" placeholder="Database Systems"></div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label>Department</label>
+              <select id="i-dept"><option>Computer Science</option><option>Engineering</option><option>Mathematics</option><option>Physics</option><option>Business</option><option>Medicine</option><option>Arts</option><option>Other</option></select>
+            </div>
+            <div class="fg"><label>Year / Sem</label>
+              <select id="i-year"><option>Year 1 – Sem 1</option><option>Year 1 – Sem 2</option><option>Year 2 – Sem 1</option><option>Year 2 – Sem 2</option><option>Year 3 – Sem 1</option><option>Year 3 – Sem 2</option><option>Year 4 – Sem 1</option><option>Year 4 – Sem 2</option></select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label>Lecturer</label><input id="i-lec" type="text" placeholder="Dr. Perera"></div>
+            <div class="fg" style="max-width:110px;"><label>Time</label><input id="i-time" type="time" value="08:00"></div>
+          </div>
+          <div class="frow" style="margin-top:4px;">
+            <button class="btn btn-p" onclick="addSubject()">+ Add Subject</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ctitle">All Subjects (<span id="s-count">0</span>)</div>
+          <div class="slist" id="slist"><div class="empty">Loading subjects…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY SESSION -->
+    <div class="tab" id="t-session">
+      <div class="pg-title">My Live Session</div>
+      <div class="pg-sub">Start a session for your class — students scan the QR to mark attendance</div>
+      <div class="sg">
+        <div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="ctitle">Choose Subject</div>
+            <div class="spick-grid" id="spick-grid"><div class="empty" style="padding:1.5rem;">Loading…</div></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-p" id="btn-start" onclick="startSession()">▶ Start Session</button>
+              <button class="btn btn-d" id="btn-stop" onclick="stopSession()" style="display:none;">■ Stop Session</button>
+            </div>
+          </div>
+          <div class="card" id="scan-log" style="display:none;">
+            <div class="log-hdr">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="ctitle" style="margin:0;">Live Scans — <span id="log-subj">—</span></span>
+                <span class="live-pill"><span class="dot" style="width:5px;height:5px;background:var(--green);animation:pls 2s infinite;"></span>LIVE</span>
+              </div>
+              <button class="btn btn-g btn-sm" onclick="exportMyCSV()">Export CSV</button>
+            </div>
+            <table class="tbl">
+              <thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Year</th><th>Time</th><th>Status</th></tr></thead>
+              <tbody id="scan-body"><tr><td colspan="6" class="tbl-empty">Waiting for students to scan…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="qr-panel">
+            <div class="qr-hdr">
+              <div class="qr-hdr-info">
+                <div class="lbl">Session</div>
+                <div class="val" id="qr-title">No Active Session</div>
+              </div>
+              <div class="sdot-row">
+                <div class="dot dot-off" id="sdot"></div>
+                <span id="sstat" style="color:var(--text2);">Idle</span>
+              </div>
+            </div>
+            <div class="qr-body">
+              <div class="qr-wrap">
+                <div id="qrcode">
+                  <div class="qr-ph">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/></svg>
+                    <p>Start a session</p>
+                  </div>
+                </div>
+              </div>
+              <div class="t-ring" id="t-ring" style="display:none;">
+                <div class="t-wrap">
+                  <svg class="t-svg" width="72" height="72" viewBox="0 0 72 72">
+                    <circle class="t-bg" cx="36" cy="36" r="30"/>
+                    <circle class="t-arc" id="t-arc" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="0"/>
+                  </svg>
+                  <div class="t-txt"><span class="t-sec" id="t-sec">45</span><span class="t-lbl">sec</span></div>
+                </div>
+                <div class="t-info"><strong>QR refreshes in</strong>Every 45 seconds</div>
+              </div>
+              <div class="tok-box" id="tok-box" style="display:none;">Token: <b id="tok-val">—</b></div>
+              <div class="hint"><strong>Students:</strong> Open camera → point at QR → tap link → fill form. Works on any phone, no app needed.</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="scard"><div class="slbl">Present</div><div class="sval gn" id="st-present">0</div></div>
+            <div class="scard"><div class="slbl">Total Scans</div><div class="sval am" id="st-scans">0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL LIVE SESSIONS -->
+    <div class="tab" id="t-live">
+      <div class="pg-title">All Live Sessions</div>
+      <div class="pg-sub">Real-time view of all active sessions across the faculty</div>
+      <div class="as-grid" id="all-sessions-grid">
+        <div class="empty" style="padding:2rem;">No active sessions right now.</div>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div class="tab" id="t-log">
+      <div class="pg-title">Attendance Log</div>
+      <div class="pg-sub">All records from all teachers — synced from Firebase</div>
+      <div class="g4">
+        <div class="scard"><div class="slbl">Total Sessions</div><div class="sval" id="as-sess">0</div></div>
+        <div class="scard"><div class="slbl">Total Scans</div><div class="sval am" id="as-scans">0</div></div>
+        <div class="scard"><div class="slbl">Subjects</div><div class="sval" id="as-subj">0</div></div>
+        <div class="scard"><div class="slbl">Avg. Rate</div><div class="sval gn" id="as-avg">—</div></div>
+      </div>
+      <div class="card">
+        <div class="filt">
+          <select id="f-subj" onchange="renderLog()"><option value="">All Subjects</option></select>
+          <select id="f-teacher" onchange="renderLog()"><option value="">All Teachers</option></select>
+          <input type="date" id="f-date" onchange="renderLog()">
+          <button class="btn btn-g btn-sm" onclick="clearFilt()">Clear</button>
+          <button class="btn btn-p btn-sm" onclick="exportAll()" style="margin-left:auto;">Export CSV</button>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Subject</th><th>Teacher</th><th>Student ID</th><th>Name</th><th>Year</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+          <tbody id="log-body"><tr><td colspan="8" class="tbl-empty">Loading records…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ STUDENT VIEW ══ -->
+<div class="sv" id="sv">
+  <div class="s-card">
+    <div class="s-brand">
+      <div class="s-bico"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></div>
+      <span class="s-bname">Attend<em>IQ</em></span>
+    </div>
+    <div id="sv-loading" style="text-align:center;padding:2rem 0;">
+      <div class="spin"></div>
+      <p style="font-size:13px;color:var(--text2);">Verifying session…</p>
+    </div>
+    <div id="sv-form" style="display:none;">
+      <div class="s-sbanner">
+        <div class="s-code" id="sv-code">—</div>
+        <div class="s-subj-info"><div class="sn" id="sv-sname">—</div><div class="sm" id="sv-meta">—</div></div>
+      </div>
+      <div class="s-status">
+        <div class="dot dot-g" id="sv-dot"></div>
+        <span>Session active — <span style="color:var(--accent);font-weight:600;" id="sv-timer">—</span> remaining</span>
+      </div>
+      <div class="s-fg"><label>Student ID / Reg. No.</label><input type="text" id="sv-id" placeholder="e.g. CS/2022/001" autocapitalize="characters" autocomplete="off"></div>
+      <div class="s-fg"><label>Full Name</label><input type="text" id="sv-fname" placeholder="e.g. Amali Perera" autocomplete="name"></div>
+      <div class="s-fg"><label>Year / Batch</label>
+        <select id="sv-year"><option value="">Select year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
+      </div>
+      <button class="s-btn" id="sv-submit" onclick="submitAttendance()">Mark My Attendance</button>
+      <p class="s-note">Only scan during class. QR expires every 45 seconds.<br>Duplicate submissions are automatically rejected.</p>
+    </div>
+    <div id="sv-ok" class="s-result" style="display:none;">
+      <div class="s-ico ok"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="s-title ok">Attendance Marked!</div>
+      <div class="s-desc">Saved to database successfully.</div>
+      <div class="s-detail">
+        <div class="dr"><span class="dk">Student ID</span><span class="dv" id="sv-r-id">—</span></div>
+        <div class="dr"><span class="dk">Name</span><span class="dv" id="sv-r-name">—</span></div>
+        <div class="dr"><span class="dk">Subject</span><span class="dv" id="sv-r-subj">—</span></div>
+        <div class="dr"><span class="dk">Teacher</span><span class="dv" id="sv-r-teacher">—</span></div>
+        <div class="dr"><span class="dk">Time</span><span class="dv" id="sv-r-time">—</span></div>
+        <div class="dr"><span class="dk">Status</span><span class="dv" id="sv-r-status" style="color:var(--green);">Present</span></div>
+      </div>
+      <div class="s-desc">You may close this page now.</div>
+    </div>
+    <div id="sv-err" class="s-result" style="display:none;">
+      <div class="s-ico err"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/></svg></div>
+      <div class="s-title err" id="sv-err-title">Error</div>
+      <div class="s-desc" id="sv-err-msg">Something went wrong.</div>
+    </div>
+  </div>
+</div>
+
+<div id="notif" class="notif" style="display:none;"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  FIREBASE INIT
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDqJPLqJzKiuit42Q8987tKdU2oLycPwCk",
+  authDomain: "attendiq-fms.firebaseapp.com",
+  projectId: "attendiq-fms",
+  storageBucket: "attendiq-fms.firebasestorage.app",
+  messagingSenderId: "197047075006",
+  appId: "1:197047075006:web:75b813fa9e923922049eef"
+};
+
+var db; // assigned after Firebase loads
+
+// ══════════════════════════════════════════
+//  ROUTING
+// ══════════════════════════════════════════
+const urlP = new URLSearchParams(window.location.search);
+const isStudent = urlP.has('t') && urlP.has('s');
+
+function loadApp() {
+  if (typeof firebase === 'undefined') {
+    document.getElementById('fb-status').textContent = 'Firebase failed to load. Check your internet connection.';
+    return;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  if (isStudent) {
+    document.getElementById('fb-loading').classList.add('hidden');
+    document.getElementById('sv').classList.add('on');
+    document.title = 'Mark Attendance — AttendIQ';
+    initStudent();
+  } else {
+    document.getElementById('fb-status').textContent = 'Connecting to database…';
+    // Test Firestore connection
+    db.collection('subjects').limit(1).get()
+      .then(() => {
+        document.getElementById('fb-loading').classList.add('hidden');
+        const saved = sessionStorage.getItem('attendiq_teacher');
+        if (saved) {
+          const t = JSON.parse(saved);
+          currentTeacher = t;
+          showTeacherDashboard();
+        } else {
+          document.getElementById('login-overlay').classList.remove('hidden');
+        }
+      })
+      .catch(err => {
+        document.getElementById('fb-status').textContent = 'Connection failed. Check Firestore rules.';
+        console.error(err);
+      });
+  }
+}
+
+// ══════════════════════════════════════════
+//  TEACHER STATE
+// ══════════════════════════════════════════
+let currentTeacher = null;
+let subjects = [];
+let selSubject = null;
+let activeSession = null;
+let sessTimer = null;
+let timerSec = 45;
+let allScans = [];
+let unsubScans = null;
+let unsubSessions = null;
+let unsubSubjects = null;
+
+function doLogin() {
+  const name = document.getElementById('l-name').value.trim();
+  const dept = document.getElementById('l-dept').value;
+  if (!name) { alert('Please enter your name'); return; }
+  if (!dept) { alert('Please select your department'); return; }
+  currentTeacher = { name, dept, id: name.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now() };
+  sessionStorage.setItem('attendiq_teacher', JSON.stringify(currentTeacher));
+  document.getElementById('login-overlay').classList.add('hidden');
+  showTeacherDashboard();
+}
+
+function showTeacherDashboard() {
+  document.getElementById('tv').classList.add('on');
+  document.getElementById('t-name-pill').textContent = currentTeacher.name;
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  loadSubjects();
+  listenAllSessions();
+  listenAllScans();
+}
+
+// ══════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════
+function goTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
+  document.getElementById('t-' + id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ══════════════════════════════════════════
+//  SUBJECTS — Firebase
+// ══════════════════════════════════════════
+function loadSubjects() {
+  if (unsubSubjects) unsubSubjects();
+  unsubSubjects = db.collection('subjects').orderBy('createdAt','asc').onSnapshot(snap => {
+    subjects = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderSubjectList();
+    renderPicker();
+    document.getElementById('s-count').textContent = subjects.length;
+  });
+}
+
+function addSubject() {
+  const code = document.getElementById('i-code').value.trim().toUpperCase();
+  const name = document.getElementById('i-name').value.trim();
+  const dept = document.getElementById('i-dept').value;
+  const year = document.getElementById('i-year').value;
+  const lec  = document.getElementById('i-lec').value.trim();
+  const time = document.getElementById('i-time').value;
+  if (!code || !name) { notify('Enter code and name','err'); return; }
+  if (subjects.find(s => s.code === code)) { notify('Code already exists','err'); return; }
+  db.collection('subjects').add({code, name, dept, year, lec, time, createdAt: firebase.firestore.FieldValue.serverTimestamp()})
+    .then(() => {
+      document.getElementById('i-code').value = '';
+      document.getElementById('i-name').value = '';
+      document.getElementById('i-lec').value = '';
+      notify('Subject ' + code + ' added');
+    })
+    .catch(() => notify('Failed to add subject','err'));
+}
+
+function removeSubject(id, code) {
+  if (!confirm('Remove subject ' + code + '?')) return;
+  db.collection('subjects').doc(id).delete()
+    .then(() => notify('Subject removed'))
+    .catch(() => notify('Failed','err'));
+}
+
+function renderSubjectList() {
+  const el = document.getElementById('slist');
+  if (!subjects.length) { el.innerHTML = '<div class="empty">No subjects yet. Add one on the left.</div>'; return; }
+  el.innerHTML = subjects.map(s => `
+    <div class="si">
+      <div class="si-l">
+        <div class="sbadge">${s.code}</div>
+        <div><div class="si-name">${s.name}</div><div class="si-meta">${s.dept} · ${s.year} · ${s.lec||'—'} · ${s.time}</div></div>
+      </div>
+      <button class="btn btn-d btn-sm" onclick="removeSubject('${s.id}','${s.code}')">Remove</button>
+    </div>`).join('');
+}
+
+function renderPicker() {
+  const el = document.getElementById('spick-grid');
+  if (!subjects.length) { el.innerHTML = '<div class="empty" style="padding:1.5rem;">No subjects yet. Add in Subjects tab.</div>'; return; }
+  el.innerHTML = subjects.map(s => `
+    <div class="spick ${selSubject?.id===s.id?'sel':''}" onclick="pickSubject('${s.id}')">
+      <div class="sp-code">${s.code}</div>
+      <div class="sp-name">${s.name}</div>
+      <div class="sp-dept">${s.dept} · ${s.time}</div>
+    </div>`).join('');
+}
+
+function pickSubject(id) {
+  if (activeSession) { notify('Stop current session first','err'); return; }
+  selSubject = subjects.find(s => s.id === id);
+  renderPicker();
+}
+
+// ══════════════════════════════════════════
+//  SESSION — Firebase
+// ══════════════════════════════════════════
+function startSession() {
+  if (!selSubject) { notify('Select a subject first','err'); return; }
+  if (activeSession) { notify('Already running'); return; }
+
+  const token = mkToken();
+  const sessionData = {
+    teacherId: currentTeacher.id,
+    teacherName: currentTeacher.name,
+    teacherDept: currentTeacher.dept,
+    subjectId: selSubject.id,
+    subjectCode: selSubject.code,
+    subjectName: selSubject.name,
+    token,
+    startTime: firebase.firestore.FieldValue.serverTimestamp(),
+    startMs: Date.now(),
+    active: true,
+    scanCount: 0
+  };
+
+  db.collection('sessions').add(sessionData).then(ref => {
+    activeSession = { id: ref.id, ...sessionData, startMs: Date.now() };
+    setupSessionUI();
+    genQR(token, ref.id);
+    startTimer();
+    listenMyScans(ref.id);
+    notify('Session started! Show QR on projector.');
+  }).catch(() => notify('Failed to start session','err'));
+}
+
+function stopSession() {
+  if (!activeSession) return;
+  db.collection('sessions').doc(activeSession.id).update({ active: false, endTime: firebase.firestore.FieldValue.serverTimestamp() })
+    .then(() => {
+      clearInterval(sessTimer);
+      if (unsubScans) unsubScans();
+      activeSession = null;
+      timerSec = 45;
+      teardownSessionUI();
+      notify('Session stopped');
+    });
+}
+
+function setupSessionUI() {
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('btn-stop').style.display = '';
+  document.getElementById('sdot').className = 'dot dot-g';
+  document.getElementById('sstat').textContent = 'Live';
+  document.getElementById('sstat').style.color = 'var(--green)';
+  document.getElementById('qr-title').textContent = selSubject.code + ' — ' + selSubject.name;
+  document.getElementById('t-ring').style.display = 'flex';
+  document.getElementById('tok-box').style.display = '';
+  document.getElementById('scan-log').style.display = '';
+  document.getElementById('log-subj').textContent = selSubject.name;
+}
+
+function teardownSessionUI() {
+  document.getElementById('btn-start').style.display = '';
+  document.getElementById('btn-stop').style.display = 'none';
+  document.getElementById('sdot').className = 'dot dot-off';
+  document.getElementById('sstat').textContent = 'Idle';
+  document.getElementById('sstat').style.color = 'var(--text2)';
+  document.getElementById('qr-title').textContent = 'No Active Session';
+  document.getElementById('t-ring').style.display = 'none';
+  document.getElementById('tok-box').style.display = 'none';
+  document.getElementById('qrcode').innerHTML = `<div class="qr-ph"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Session ended</p></div>`;
+  document.getElementById('st-present').textContent = '0';
+  document.getElementById('st-scans').textContent = '0';
+}
+
+function mkToken() { return Math.random().toString(36).substring(2,10).toUpperCase(); }
+
+function genQR(token, sessionId) {
+  const exp = Date.now() + 45000;
+  if (activeSession) activeSession.currentExp = exp;
+  const base = window.location.origin + window.location.pathname;
+  const url = base +
+    '?s=' + encodeURIComponent(activeSession?.subjectCode || selSubject.code) +
+    '&sn=' + encodeURIComponent(activeSession?.subjectName || selSubject.name) +
+    '&t=' + token +
+    '&sid=' + (sessionId || activeSession.id) +
+    '&exp=' + exp +
+    '&l=' + encodeURIComponent(selSubject.lec || '') +
+    '&ss=' + (activeSession?.startMs || Date.now()) +
+    '&tn=' + encodeURIComponent(currentTeacher.name);
+  document.getElementById('tok-val').textContent = token;
+  document.getElementById('qrcode').innerHTML = '';
+  try {
+    new QRCode(document.getElementById('qrcode'), {
+      text: url, width: 186, height: 186,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(e) {}
+}
+
+function startTimer() {
+  timerSec = 45;
+  updateTimerUI();
+  clearInterval(sessTimer);
+  sessTimer = setInterval(() => {
+    timerSec--;
+    updateTimerUI();
+    if (timerSec <= 0) {
+      timerSec = 45;
+      if (activeSession) {
+        const newToken = mkToken();
+        activeSession.token = newToken;
+        // Update token in Firestore
+        db.collection('sessions').doc(activeSession.id).update({ token: newToken });
+        genQR(newToken, activeSession.id);
+      }
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const el = document.getElementById('t-sec');
+  if (!el) return;
+  el.textContent = timerSec;
+  const offset = 188.5 - (timerSec/45)*188.5;
+  document.getElementById('t-arc').style.strokeDashoffset = offset;
+  const c = timerSec > 12 ? 'var(--accent)' : 'var(--red)';
+  document.getElementById('t-arc').style.stroke = c;
+  el.style.color = c;
+}
+
+// ══════════════════════════════════════════
+//  REAL-TIME LISTENERS
+// ══════════════════════════════════════════
+function listenMyScans(sessionId) {
+  if (unsubScans) unsubScans();
+  unsubScans = db.collection('attendance')
+    .where('sessionId','==',sessionId)
+    .orderBy('createdAt','asc')
+    .onSnapshot(snap => {
+      const scans = snap.docs.map(d => d.data());
+      renderScanTable(scans);
+      document.getElementById('st-present').textContent = scans.filter(s=>s.status==='Present').length;
+      document.getElementById('st-scans').textContent = scans.length;
+    });
+}
+
+function listenAllSessions() {
+  if (unsubSessions) unsubSessions();
+  unsubSessions = db.collection('sessions')
+    .where('active','==',true)
+    .onSnapshot(snap => {
+      const sessions = snap.docs.map(d => ({id:d.id,...d.data()}));
+      renderAllSessions(sessions);
+    });
+}
+
+function listenAllScans() {
+  db.collection('attendance').orderBy('createdAt','desc').onSnapshot(snap => {
+    allScans = snap.docs.map(d => ({id:d.id,...d.data()}));
+    updateLogStats();
+    renderLog();
+  });
+}
+
+function renderScanTable(scans) {
+  const tbody = document.getElementById('scan-body');
+  if (!scans.length) { tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">Waiting for students to scan…</td></tr>'; return; }
+  tbody.innerHTML = [...scans].reverse().map((s,i) => `
+    <tr>
+      <td style="color:var(--text2);">${scans.length-i}</td>
+      <td style="font-family:monospace;color:var(--accent);font-size:11px;">${s.studentId}</td>
+      <td style="font-weight:500;">${s.studentName}</td>
+      <td style="color:var(--text2);">${s.year}</td>
+      <td style="color:var(--text2);">${s.time}</td>
+      <td><span class="${s.status==='Present'?'bp':'bl'}">${s.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderAllSessions(sessions) {
+  const el = document.getElementById('all-sessions-grid');
+  if (!sessions.length) {
+    el.innerHTML = '<div class="empty" style="padding:3rem;grid-column:1/-1;">No active sessions right now.<br>Teachers will appear here when they start a session.</div>';
+    return;
+  }
+  el.innerHTML = sessions.map(s => `
+    <div class="as-card">
+      <div class="ac-code">${s.subjectCode}</div>
+      <div class="ac-name">${s.subjectName}</div>
+      <div class="ac-teacher"><span class="dot dot-g" style="width:6px;height:6px;flex-shrink:0;"></span>${s.teacherName} · ${s.teacherDept}</div>
+      <div class="ac-count">⬤ ${s.scanCount||0} scans so far</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+//  LOG TAB
+// ══════════════════════════════════════════
+function updateLogStats() {
+  const sessions = new Set(allScans.map(s=>s.sessionId)).size;
+  document.getElementById('as-sess').textContent = sessions;
+  document.getElementById('as-scans').textContent = allScans.length;
+  document.getElementById('as-subj').textContent = new Set(allScans.map(s=>s.subjectCode)).size;
+  const p = allScans.filter(s=>s.status==='Present').length;
+  document.getElementById('as-avg').textContent = allScans.length ? Math.round((p/allScans.length)*100)+'%' : '—';
+
+  const fSubj = document.getElementById('f-subj');
+  const fTeach = document.getElementById('f-teacher');
+  const curS = fSubj.value; const curT = fTeach.value;
+  fSubj.innerHTML = '<option value="">All Subjects</option>';
+  fTeach.innerHTML = '<option value="">All Teachers</option>';
+  [...new Set(allScans.map(s=>s.subjectCode))].forEach(c => {
+    fSubj.innerHTML += `<option value="${c}" ${curS===c?'selected':''}>${c}</option>`;
+  });
+  [...new Set(allScans.map(s=>s.teacherName))].forEach(t => {
+    fTeach.innerHTML += `<option value="${t}" ${curT===t?'selected':''}>${t}</option>`;
+  });
+}
+
+function renderLog() {
+  const sf = document.getElementById('f-subj').value;
+  const tf = document.getElementById('f-teacher').value;
+  const df = document.getElementById('f-date').value;
+  let rows = allScans;
+  if (sf) rows = rows.filter(r=>r.subjectCode===sf);
+  if (tf) rows = rows.filter(r=>r.teacherName===tf);
+  if (df) rows = rows.filter(r=>r.date===df);
+  const tbody = document.getElementById('log-body');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="tbl-empty">No records found.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="sbadge" style="font-size:10px;">${r.subjectCode}</span></td>
+      <td style="color:var(--text2);font-size:11px;">${r.teacherName||'—'}</td>
+      <td style="font-family:monospace;color:var(--accent);font-size:11px;">${r.studentId}</td>
+      <td style="font-weight:500;">${r.studentName}</td>
+      <td style="color:var(--text2);">${r.year}</td>
+      <td style="color:var(--text2);">${r.date}</td>
+      <td style="color:var(--text2);">${r.time}</td>
+      <td><span class="${r.status==='Present'?'bp':'bl'}">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+function clearFilt() {
+  document.getElementById('f-subj').value='';
+  document.getElementById('f-teacher').value='';
+  document.getElementById('f-date').value='';
+  renderLog();
+}
+
+// ══════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════
+function exportMyCSV() {
+  const scans = allScans.filter(s=>activeSession && s.sessionId===activeSession.id);
+  if (!scans.length) { notify('No data','err'); return; }
+  const rows=[['Student ID','Name','Year','Date','Time','Subject','Teacher','Status']];
+  scans.forEach(s=>rows.push([s.studentId,s.studentName,s.year,s.date,s.time,s.subjectCode,s.teacherName,s.status]));
+  dlCSV(rows,'my_session_'+new Date().toLocaleDateString('en-CA')+'.csv');
+}
+function exportAll() {
+  if (!allScans.length) { notify('No data','err'); return; }
+  const rows=[['Subject','Teacher','Student ID','Name','Year','Date','Time','Status']];
+  allScans.forEach(s=>rows.push([s.subjectCode,s.teacherName||'—',s.studentId,s.studentName,s.year,s.date,s.time,s.status]));
+  dlCSV(rows,'attendance_all_'+new Date().toLocaleDateString('en-CA')+'.csv');
+}
+function dlCSV(rows,name) {
+  const csv=rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=name; a.click();
+  notify('Exported: '+name);
+}
+
+// ══════════════════════════════════════════
+//  STUDENT LOGIC
+// ══════════════════════════════════════════
+function initStudent() {
+  const p = {
+    subject:     urlP.get('s') || '',
+    subjectName: urlP.get('sn') || '',
+    token:       urlP.get('t') || '',
+    sessionId:   urlP.get('sid') || '',
+    exp:         parseInt(urlP.get('exp') || '0'),
+    lec:         urlP.get('l') || '',
+    ss:          parseInt(urlP.get('ss') || '0'),
+    teacher:     urlP.get('tn') || ''
+  };
+
+  setTimeout(() => {
+    document.getElementById('sv-loading').style.display = 'none';
+    if (!p.token || !p.subject || !p.sessionId) {
+      showSvErr('Invalid QR Code', 'This QR code is missing session data. Ask your lecturer to regenerate it.'); return;
+    }
+    if (Date.now() > p.exp) {
+      showSvErr('QR Code Expired', 'This QR has already expired. Please scan the current QR code shown on the projector.'); return;
+    }
+
+    document.getElementById('sv-code').textContent = p.subject;
+    document.getElementById('sv-sname').textContent = p.subjectName || p.subject;
+    document.getElementById('sv-meta').textContent = p.teacher ? 'Lecturer: '+p.teacher : 'Mark your attendance';
+    document.getElementById('sv-form').style.display = '';
+    window._sp = p;
+
+    let tiv = setInterval(() => {
+      const rem = Math.round((p.exp - Date.now()) / 1000);
+      if (rem <= 0) {
+        clearInterval(tiv);
+        showSvErr('QR Expired', 'Scan the new QR code on the projector.');
+      } else {
+        document.getElementById('sv-timer').textContent = rem+'s';
+        if (rem <= 10) {
+          document.getElementById('sv-dot').style.background = 'var(--red)';
+          document.getElementById('sv-timer').style.color = 'var(--red)';
+        }
+      }
+    }, 1000);
+    window._stiv = tiv;
+  }, 700);
+}
+
+function submitAttendance() {
+  const id   = document.getElementById('sv-id').value.trim();
+  const name = document.getElementById('sv-fname').value.trim();
+  const year = document.getElementById('sv-year').value;
+  if (!id)   { alert('Please enter your Student ID'); return; }
+  if (!name) { alert('Please enter your Full Name'); return; }
+  if (!year) { alert('Please select your year'); return; }
+  if (Date.now() > window._sp.exp) {
+    showSvErr('Too Late!', 'The QR code expired. Scan the new code on the projector.'); return;
+  }
+
+  const btn = document.getElementById('sv-submit');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const p = window._sp;
+  const minsDiff = p.ss ? Math.round((Date.now()-p.ss)/60000) : 0;
+  const status = minsDiff > 10 ? 'Late' : 'Present';
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const dateStr = now.toLocaleDateString('en-CA');
+
+  // Check for duplicates first
+  db.collection('attendance')
+    .where('sessionId','==',p.sessionId)
+    .where('studentId','==',id)
+    .get()
+    .then(snap => {
+      if (!snap.empty) {
+        btn.disabled = false;
+        btn.textContent = 'Mark My Attendance';
+        showSvErr('Already Marked', 'Your attendance for this session has already been recorded.');
+        return;
+      }
+      // Save to Firestore
+      return db.collection('attendance').add({
+        sessionId: p.sessionId,
+        subjectCode: p.subject,
+        subjectName: p.subjectName,
+        teacherName: p.teacher,
+        studentId: id,
+        studentName: name,
+        year,
+        date: dateStr,
+        time: timeStr,
+        token: p.token,
+        status,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        // Update scan count on session
+        db.collection('sessions').doc(p.sessionId)
+          .update({ scanCount: firebase.firestore.FieldValue.increment(1) });
+
+        clearInterval(window._stiv);
+        document.getElementById('sv-form').style.display = 'none';
+        document.getElementById('sv-ok').style.display = '';
+        document.getElementById('sv-r-id').textContent = id;
+        document.getElementById('sv-r-name').textContent = name;
+        document.getElementById('sv-r-subj').textContent = p.subject+(p.subjectName?' — '+p.subjectName:'');
+        document.getElementById('sv-r-teacher').textContent = p.teacher || '—';
+        document.getElementById('sv-r-time').textContent = timeStr;
+        document.getElementById('sv-r-status').textContent = status;
+        document.getElementById('sv-r-status').style.color = status==='Late'?'var(--accent)':'var(--green)';
+      });
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = 'Mark My Attendance';
+      showSvErr('Error', 'Could not save attendance. Check your connection and try again.');
+      console.error(err);
+    });
+}
+
+function showSvErr(title, msg) {
+  document.getElementById('sv-loading').style.display='none';
+  document.getElementById('sv-form').style.display='none';
+  document.getElementById('sv-ok').style.display='none';
+  document.getElementById('sv-err').style.display='';
+  document.getElementById('sv-err-title').textContent=title;
+  document.getElementById('sv-err-msg').textContent=msg;
+}
+
+// ══════════════════════════════════════════
+//  NOTIFY
+// ══════════════════════════════════════════
+let nTimer;
+function notify(msg, type='ok') {
+  const el=document.getElementById('notif');
+  el.textContent=(type==='ok'?'✓ ':'✕ ')+msg;
+  el.style.display='';
+  el.style.color=type==='err'?'var(--red)':'var(--green)';
+  el.style.border='1px solid '+(type==='err'?'var(--red-bd)':'var(--green-bd)');
+  clearTimeout(nTimer);
+  nTimer=setTimeout(()=>el.style.display='none',3500);
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+var fbLoaded = 0;
+function checkFirebaseLoad() {
+  fbLoaded++;
+  if (fbLoaded >= 2) loadApp();
+}
+function fbLoadError() {
+  document.getElementById('fb-loading').classList.remove('hidden');
+  document.getElementById('fb-status').textContent = 'Firebase failed to load. Make sure you are opening this file from a web server (https://), not from your local computer (file://).';
+}
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onload="checkFirebaseLoad()" onerror="fbLoadError()"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" onload="checkFirebaseLoad()" onerror="fbLoadError()"></script>
+</body>
+</html>
