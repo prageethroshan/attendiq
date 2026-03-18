@@ -773,6 +773,7 @@ function startSession() {
     subjectName: selSubject.name,
     token,
     startTime: firebase.firestore.FieldValue.serverTimestamp(),
+    lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp(),
     startMs: Date.now(),
     active: true,
     scanCount: 0
@@ -794,7 +795,11 @@ let heartbeatTimer = null;
 
 function startHeartbeat(sessionId) {
   stopHeartbeat();
-  // Send heartbeat every 30 seconds
+  // Send IMMEDIATE heartbeat so session is visible right away
+  db.collection('sessions').doc(sessionId).update({
+    lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(() => {});
+  // Then keep sending every 30 seconds
   heartbeatTimer = setInterval(() => {
     if (!activeSession) { stopHeartbeat(); return; }
     db.collection('sessions').doc(sessionId).update({
@@ -964,14 +969,31 @@ function listenMyScans(sessionId) {
 }
 
 function cleanupGhostSessions() {
-  // Mark ALL currently-active sessions as inactive on login.
-  // This clears any ghost sessions from previous runs.
+  // Only kill sessions that have NO heartbeat or a stale heartbeat (>90s old)
+  // Never kill sessions that are genuinely active from other teachers
   db.collection('sessions').where('active','==',true).get().then(snap => {
+    const now = Date.now();
     const batch = db.batch();
+    let count = 0;
     snap.docs.forEach(doc => {
-      batch.update(doc.ref, { active: false });
+      const s = doc.data();
+      const hb = s.lastHeartbeat;
+      if (!hb) {
+        // No heartbeat field at all — old ghost session, safe to kill
+        batch.update(doc.ref, { active: false });
+        count++;
+      } else {
+        const hbMs = hb.toMillis ? hb.toMillis() : hb;
+        const staleSecs = (now - hbMs) / 1000;
+        if (staleSecs > 90) {
+          // Heartbeat too old — teacher's browser is closed, safe to kill
+          batch.update(doc.ref, { active: false });
+          count++;
+        }
+        // Otherwise: heartbeat is fresh → another teacher is active, leave it alone
+      }
     });
-    if (!snap.empty) batch.commit().catch(() => {});
+    if (count > 0) batch.commit().catch(() => {});
   }).catch(() => {});
 }
 
