@@ -982,7 +982,7 @@ function startSession() {
     scanCount: 0
   };
 
-  db.collection('sessions').add(sessionData).then(ref => {
+  db.collection('sessions').add(sessionData).then(function(ref) {
     activeSession = { id: ref.id, ...sessionData, startMs: Date.now() };
     setupSessionUI();
     genQR(token, ref.id);
@@ -990,7 +990,38 @@ function startSession() {
     startHeartbeat(ref.id);
     listenMyScans(ref.id);
     notify('Session started! Show QR on projector.');
-  }).catch(() => notify('Failed to start session','err'));
+  }).catch(function(err) {
+    console.error('Session start error:', err.code, err.message);
+    var reason = '';
+    if (err.code === 'permission-denied') {
+      reason = 'Firestore rules are blocking writes. Go to Firebase Console and update your security rules.';
+    } else if (err.code === 'unavailable' || err.code === 'network-request-failed') {
+      reason = 'No internet connection. Check your network and try again.';
+    } else if (err.code === 'unauthenticated') {
+      reason = 'Authentication required. Please refresh the page.';
+    } else {
+      reason = err.message || err.code || 'Unknown error. Check browser console.';
+    }
+    notify('Failed to start session: ' + reason, 'err');
+
+    // Show a persistent banner with fix instructions
+    var existing = document.getElementById('err-banner');
+    if (existing) existing.remove();
+    var banner = document.createElement('div');
+    banner.id = 'err-banner';
+    banner.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:99;' +
+      'background:var(--red-bg);border-bottom:1px solid var(--red-bd);' +
+      'padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    banner.innerHTML =
+      '<span style="font-size:13px;color:var(--red);font-weight:500;">⚠ ' + reason + '</span>' +
+      '<div style="display:flex;gap:8px;">' +
+      '<a href="https://console.firebase.google.com/project/attendiq-fms/firestore/rules" target="_blank" ' +
+      'style="background:var(--red);color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">Fix Rules →</a>' +
+      '<button onclick="this.parentElement.parentElement.remove()" ' +
+      'style="background:none;border:1px solid var(--red-bd);color:var(--red);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;">✕</button>' +
+      '</div>';
+    document.getElementById('tv').prepend(banner);
+  });
 }
 
 // ── HEARTBEAT: keeps session alive; stops on tab close ──────────────
