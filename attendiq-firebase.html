@@ -210,23 +210,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dk{color:var(--text2);}.dv{font-weight:500;}
 
 /* ── FULLSCREEN QR ── */
-.fs-overlay{
-  display:none;position:fixed;inset:0;z-index:500;
-  background:#fff;flex-direction:column;
-  align-items:center;justify-content:center;gap:24px;
-  cursor:pointer;
-}
-.fs-overlay.open{display:flex;}
-.fs-qr-wrap{background:#fff;padding:20px;border-radius:16px;}
-.fs-label{font-family:'DM Serif Display',serif;font-size:22px;color:#1a1a2e;text-align:center;line-height:1.4;}
-.fs-sublabel{font-size:15px;color:#666;text-align:center;}
-.fs-token{font-family:monospace;font-size:28px;font-weight:700;color:#f5a623;
-  background:#1a1a2e;padding:10px 24px;border-radius:10px;letter-spacing:4px;}
-.fs-hint{font-size:13px;color:#999;text-align:center;}
-.fs-close{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;
-  border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;
-  cursor:pointer;font-family:'DM Sans',sans-serif;z-index:501;}
-.fs-timer{font-size:14px;color:#f5a623;font-weight:600;}
+/* fullscreen styles below */
 
 .notif{position:fixed;bottom:20px;right:20px;background:var(--surface);border-radius:var(--rs);padding:10px 16px;font-size:12px;font-weight:600;z-index:999;animation:slin 0.25s ease;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
 @keyframes slin{from{transform:translateY(14px);opacity:0;}to{transform:translateY(0);opacity:1;}}
@@ -560,14 +544,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- ══ FULLSCREEN QR OVERLAY ══ -->
 <div class="fs-overlay" id="fs-overlay">
-  <button class="fs-close" onclick="closeFullscreen()">✕ Close Fullscreen</button>
+  <button class="fs-close" onclick="closeFullscreen()">✕ Close (ESC)</button>
   <div class="fs-subject" id="fs-subject">—</div>
-  <div class="fs-qr-wrap">
-    <div id="fs-qrcode"></div>
-  </div>
-  <div class="fs-url">Scan QR above &nbsp;|&nbsp; Or visit: <span id="fs-url-short">—</span></div>
-  <div class="fs-timer">QR refreshes in <b id="fs-timer-sec">120</b> seconds</div>
-  <div class="fs-hint">Open phone camera → point at QR → tap the link → fill in your details</div>
+  <div id="fs-qrcode"></div>
+  <div class="fs-timer">QR refreshes in <b id="fs-timer-sec">120</b>s</div>
+  <div class="fs-code-box">Session Code: <span id="fs-short-code">—</span></div>
+  <div class="fs-url">Can't scan? Go to: <span id="fs-url-short">—</span> and enter the code above</div>
+  <div class="fs-hint">Open phone camera → point at QR → tap the link that appears</div>
 </div>
 
 <!-- ══ STUDENT VIEW ══ -->
@@ -1169,53 +1152,11 @@ function genQR(token, sessionId) {
   }, 100);
 
   // Also update fullscreen QR if overlay is open
-  if (document.getElementById('fs-overlay').classList.contains('open')) {
-    updateFullscreenQR(token, url);
-  }
+  window._lastQrUrl = url;
+  refreshFsIfOpen(token, url);
 }
 
-function openFullscreen() {
-  if (!activeSession) return;
-  const overlay = document.getElementById('fs-overlay');
-  overlay.classList.add('open');
-  document.getElementById('fs-subject-label').textContent =
-    activeSession.subjectCode + ' — ' + activeSession.subjectName;
-  const base = window.location.origin + window.location.pathname;
-  document.getElementById('fs-url-label').textContent =
-    base.replace('https://', '').replace('http://','');
-  updateFullscreenQR(activeSession.token, window._lastQrUrl || buildAttendanceUrl(activeSession.token, activeSession.id));
-}
-
-function updateFullscreenQR(token, url) {
-  document.getElementById('fs-token-label').textContent = token;
-  document.getElementById('fs-qrcode').innerHTML = '';
-  setTimeout(function() {
-    try {
-      // Fullscreen QR — much larger: 480px
-      new QRCode(document.getElementById('fs-qrcode'), {
-        text: url, width: 480, height: 480,
-        colorDark: '#000000', colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    } catch(e) {}
-  }, 80);
-}
-
-function closeFullscreen() {
-  document.getElementById('fs-overlay').classList.remove('open');
-}
-
-// ESC key closes fullscreen
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeFullscreen();
-});
-
-// Sync fullscreen timer with main timer
-var _fsTimerSync = setInterval(function() {
-  var el = document.getElementById('fs-sec');
-  var mainEl = document.getElementById('t-sec');
-  if (el && mainEl) el.textContent = mainEl.textContent;
-}, 1000);
+// fullscreen functions below
 
 function startTimer() {
   timerSec = 120;
@@ -1751,23 +1692,52 @@ function initStudentFromManual(params, sessionId, session) {
 // ══════════════════════════════════════════
 function openFullscreen() {
   if (!activeSession) return;
-  const overlay = document.getElementById('fs-overlay');
+  var overlay = document.getElementById('fs-overlay');
   overlay.classList.add('on');
-  // Try native fullscreen on the overlay
+
+  // Populate labels
+  document.getElementById('fs-subject').textContent =
+    activeSession.subjectCode + ' — ' + activeSession.subjectName;
+  var base = window.location.origin + window.location.pathname;
+  document.getElementById('fs-url-short').textContent =
+    base.replace('https://','').replace('http://','');
+  document.getElementById('fs-short-code').textContent =
+    activeSession.shortCode || '—';
+
+  // Generate large QR
+  var url = window._lastQrUrl ||
+    buildAttendanceUrl(activeSession.token, activeSession.id);
+  document.getElementById('fs-qrcode').innerHTML = '';
+  setTimeout(function() {
+    try {
+      new QRCode(document.getElementById('fs-qrcode'), {
+        text: url,
+        width: 420, height: 420,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {
+      document.getElementById('fs-qrcode').innerHTML =
+        '<p style="color:red;font-size:14px;">QR error — refresh the page</p>';
+    }
+  }, 80);
+
+  // Try native device fullscreen (projector)
   if (overlay.requestFullscreen) {
     overlay.requestFullscreen().catch(function() {});
   } else if (overlay.webkitRequestFullscreen) {
     overlay.webkitRequestFullscreen();
   }
-  // Sync timer with main timer
+
+  // Sync timer
   syncFsTimer();
   window._fsSyncTimer = setInterval(syncFsTimer, 1000);
 }
 
 function closeFullscreen() {
   document.getElementById('fs-overlay').classList.remove('on');
+  document.getElementById('fs-qrcode').innerHTML = '';
   clearInterval(window._fsSyncTimer);
-  // Exit native fullscreen if active
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
@@ -1775,16 +1745,35 @@ function closeFullscreen() {
 }
 
 function syncFsTimer() {
-  const el = document.getElementById('fs-timer-sec');
-  if (el) el.textContent = document.getElementById('t-sec').textContent;
+  var el = document.getElementById('fs-timer-sec');
+  var mainEl = document.getElementById('t-sec');
+  if (el && mainEl) el.textContent = mainEl.textContent;
 }
+
+// Also regenerate fullscreen QR when token rotates
+var _origGenQR = genQR;
 
 // Close fullscreen with Escape key
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeFullscreen();
 });
 
-// Also hide fullscreen button and URL box when session stops
+// When token rotates, also update fullscreen QR if open
+function refreshFsIfOpen(token, url) {
+  if (!document.getElementById('fs-overlay').classList.contains('on')) return;
+  document.getElementById('fs-short-code').textContent = token;
+  document.getElementById('fs-qrcode').innerHTML = '';
+  setTimeout(function() {
+    try {
+      new QRCode(document.getElementById('fs-qrcode'), {
+        text: url, width: 420, height: 420,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {}
+  }, 80);
+}
+
 const _origTeardown = teardownSessionUI;
 
 // ══════════════════════════════════════════
