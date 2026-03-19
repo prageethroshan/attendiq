@@ -1129,25 +1129,29 @@ function genQR(token, sessionId) {
   const url = buildAttendanceUrl(token, sessionId);
   window._lastQrUrl = url;
 
-  document.getElementById('tok-val').textContent = token;
+  // Update manual code display — use null checks in case UI not ready yet
+  var tokVal = document.getElementById('tok-val');
+  if (tokVal) tokVal.textContent = token;
   var scv = document.getElementById('short-code-val');
   if (scv) scv.textContent = token;
-  document.getElementById('qrcode').innerHTML = '';
+  var qrEl = document.getElementById('qrcode');
+  if (!qrEl) return;
+  qrEl.innerHTML = '';
 
   setTimeout(function() {
     try {
       if (typeof QRCode === 'undefined') {
-        document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR library not loaded. Refresh.</p></div>';
+        if (qrEl) qrEl.innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR library not loaded. Refresh.</p></div>';
         return;
       }
       // Normal panel QR — 186px
-      new QRCode(document.getElementById('qrcode'), {
+      new QRCode(qrEl, {
         text: url, width: 186, height: 186,
         colorDark: '#000000', colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
     } catch(e) {
-      document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR error</p></div>';
+      if (qrEl) qrEl.innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR error — refresh page</p></div>';
     }
   }, 100);
 
