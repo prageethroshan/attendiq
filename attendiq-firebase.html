@@ -432,9 +432,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
                 <div class="t-info"><strong>QR refreshes in</strong>Every 2 minutes</div>
               </div>
               <div class="tok-box" id="tok-box" style="display:none;">
-                QR Token: <b id="tok-val">—</b>
-                &nbsp;&nbsp;|&nbsp;&nbsp;
-                Manual Code: <b id="short-code-val" style="font-size:15px;letter-spacing:2px;">—</b>
+                Manual Code (changes every 2 min): <b id="short-code-val" style="font-size:16px;letter-spacing:3px;color:var(--accent2);">—</b>
               </div>
               <div class="hint"><strong>Students:</strong> Open camera → point at QR → tap link → fill form. Works on any phone, no app needed.</div>
               <div class="url-share-box" id="url-share-box" style="display:none;">
@@ -548,7 +546,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="fs-subject" id="fs-subject">—</div>
   <div id="fs-qrcode"></div>
   <div class="fs-timer">QR refreshes in <b id="fs-timer-sec">120</b>s</div>
-  <div class="fs-code-box">Session Code: <span id="fs-short-code">—</span></div>
+  <div class="fs-code-box">Code (changes every 2 min): <span id="fs-short-code">—</span></div>
   <div class="fs-url">Can't scan? Go to: <span id="fs-url-short">—</span> and enter the code above</div>
   <div class="fs-hint">Open phone camera → point at QR → tap the link that appears</div>
 </div>
@@ -969,10 +967,6 @@ function startSession() {
   if (activeSession) { notify('Already running'); return; }
 
   const token = mkToken();
-  // Generate a short 6-char alphanumeric code for manual entry
-  const shortCode = Math.random().toString(36).substring(2,5).toUpperCase() +
-                    Math.random().toString(36).substring(2,5).toUpperCase();
-
   const sessionData = {
     teacherId: currentTeacher.id,
     teacherName: currentTeacher.name,
@@ -981,7 +975,6 @@ function startSession() {
     subjectCode: selSubject.code,
     subjectName: selSubject.name,
     token,
-    shortCode,
     startTime: firebase.firestore.FieldValue.serverTimestamp(),
     lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp(),
     startMs: Date.now(),
@@ -990,7 +983,7 @@ function startSession() {
   };
 
   db.collection('sessions').add(sessionData).then(ref => {
-    activeSession = { id: ref.id, ...sessionData, startMs: Date.now(), shortCode };
+    activeSession = { id: ref.id, ...sessionData, startMs: Date.now() };
     setupSessionUI();
     genQR(token, ref.id);
     startTimer();
@@ -1084,8 +1077,8 @@ function setupSessionUI() {
   document.getElementById('scan-log').style.display = '';
   document.getElementById('log-subj').textContent = selSubject.name;
   document.getElementById('fs-btn').style.display = '';
-  if (activeSession && activeSession.shortCode) {
-    document.getElementById('short-code-val').textContent = activeSession.shortCode;
+  if (activeSession && activeSession.token) {
+    document.getElementById('short-code-val').textContent = activeSession.token;
   }
 }
 
@@ -1132,6 +1125,8 @@ function genQR(token, sessionId) {
   window._lastQrUrl = url;
 
   document.getElementById('tok-val').textContent = token;
+  var scv = document.getElementById('short-code-val');
+  if (scv) scv.textContent = token;
   document.getElementById('qrcode').innerHTML = '';
 
   setTimeout(function() {
@@ -1620,17 +1615,17 @@ function tryManualCode() {
   document.getElementById('sv-err').style.display = 'none';
   document.getElementById('sv-loading').style.display = '';
 
-  // Search Firestore for an active session with this shortCode
+  // Search Firestore for an active session with this token (rotates every 2 min)
   db.collection('sessions')
     .where('active', '==', true)
-    .where('shortCode', '==', code)
+    .where('token', '==', code)
     .get()
     .then(function(snap) {
       document.getElementById('sv-loading').style.display = 'none';
       if (snap.empty) {
         document.getElementById('sv-err').style.display = '';
-        document.getElementById('sv-err-title').textContent = 'Code Not Found';
-        document.getElementById('sv-err-msg').textContent = 'No active session found for code "' + code + '". Check the code and try again.';
+        document.getElementById('sv-err-title').textContent = 'Code Not Found or Expired';
+        document.getElementById('sv-err-msg').textContent = 'No active session found for code "' + code + '". The code changes every 2 minutes — check the latest code shown by your lecturer and try again.';
         return;
       }
       var doc = snap.docs[0];
@@ -1702,7 +1697,7 @@ function openFullscreen() {
   document.getElementById('fs-url-short').textContent =
     base.replace('https://','').replace('http://','');
   document.getElementById('fs-short-code').textContent =
-    activeSession.shortCode || '—';
+    activeSession.token || '—';
 
   // Generate large QR
   var url = window._lastQrUrl ||
@@ -1762,6 +1757,8 @@ document.addEventListener('keydown', function(e) {
 function refreshFsIfOpen(token, url) {
   if (!document.getElementById('fs-overlay').classList.contains('on')) return;
   document.getElementById('fs-short-code').textContent = token;
+  var scv = document.getElementById('short-code-val');
+  if (scv) scv.textContent = token;
   document.getElementById('fs-qrcode').innerHTML = '';
   setTimeout(function() {
     try {
