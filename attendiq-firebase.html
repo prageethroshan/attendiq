@@ -209,8 +209,42 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dr{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}
 .dk{color:var(--text2);}.dv{font-weight:500;}
 
+/* ── FULLSCREEN QR ── */
+.fs-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:#fff;flex-direction:column;
+  align-items:center;justify-content:center;gap:24px;
+  cursor:pointer;
+}
+.fs-overlay.open{display:flex;}
+.fs-qr-wrap{background:#fff;padding:20px;border-radius:16px;}
+.fs-label{font-family:'DM Serif Display',serif;font-size:22px;color:#1a1a2e;text-align:center;line-height:1.4;}
+.fs-sublabel{font-size:15px;color:#666;text-align:center;}
+.fs-token{font-family:monospace;font-size:28px;font-weight:700;color:#f5a623;
+  background:#1a1a2e;padding:10px 24px;border-radius:10px;letter-spacing:4px;}
+.fs-hint{font-size:13px;color:#999;text-align:center;}
+.fs-close{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;
+  border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:'DM Sans',sans-serif;z-index:501;}
+.fs-timer{font-size:14px;color:#f5a623;font-weight:600;}
+
 .notif{position:fixed;bottom:20px;right:20px;background:var(--surface);border-radius:var(--rs);padding:10px 16px;font-size:12px;font-weight:600;z-index:999;animation:slin 0.25s ease;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
 @keyframes slin{from{transform:translateY(14px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* ── FULLSCREEN QR ── */
+.fs-overlay{display:none;position:fixed;inset:0;background:#fff;z-index:1000;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+.fs-overlay.on{display:flex;}
+.fs-qr-wrap{background:#fff;padding:0;display:flex;align-items:center;justify-content:center;}
+#fs-qrcode canvas,#fs-qrcode img{width:min(80vw,80vh) !important;height:min(80vw,80vh) !important;}
+.fs-subject{font-family:'DM Serif Display',serif;font-size:clamp(20px,3vw,36px);color:#111;text-align:center;font-weight:700;}
+.fs-timer{font-size:clamp(14px,2vw,22px);color:#555;text-align:center;}
+.fs-timer b{color:#f5a623;}
+.fs-url{font-size:clamp(13px,1.8vw,20px);color:#333;text-align:center;background:#f5f5f5;border-radius:10px;padding:10px 24px;font-family:monospace;letter-spacing:0.5px;}
+.fs-url span{color:#f5a623;font-weight:700;}
+.fs-close{position:fixed;top:16px;right:16px;background:#111;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;z-index:1001;}
+.fs-hint{font-size:clamp(12px,1.5vw,16px);color:#888;text-align:center;}
+.url-share-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;font-size:11px;color:var(--text2);text-align:center;width:100%;word-break:break-all;}
+.url-share-box b{color:var(--accent);font-size:12px;}
 
 /* ── SUMMARY TAB ── */
 .sum-filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
@@ -386,9 +420,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
                 <div class="lbl">Session</div>
                 <div class="val" id="qr-title">No Active Session</div>
               </div>
-              <div class="sdot-row">
-                <div class="dot dot-off" id="sdot"></div>
-                <span id="sstat" style="color:var(--text2);">Idle</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="sdot-row">
+                  <div class="dot dot-off" id="sdot"></div>
+                  <span id="sstat" style="color:var(--text2);">Idle</span>
+                </div>
+                <button id="fs-btn" onclick="openFullscreen()" style="display:none;background:var(--accent);color:#0c0f1a;border:none;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">⛶ Fullscreen</button>
               </div>
             </div>
             <div class="qr-body">
@@ -410,8 +447,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
                 </div>
                 <div class="t-info"><strong>QR refreshes in</strong>Every 2 minutes</div>
               </div>
-              <div class="tok-box" id="tok-box" style="display:none;">Token: <b id="tok-val">—</b></div>
+              <div class="tok-box" id="tok-box" style="display:none;">
+                QR Token: <b id="tok-val">—</b>
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                Manual Code: <b id="short-code-val" style="font-size:15px;letter-spacing:2px;">—</b>
+              </div>
               <div class="hint"><strong>Students:</strong> Open camera → point at QR → tap link → fill form. Works on any phone, no app needed.</div>
+              <div class="url-share-box" id="url-share-box" style="display:none;">
+                <div style="margin-bottom:4px;font-weight:600;color:var(--text);">Can't scan? Students can also visit:</div>
+                <b id="short-url-display">—</b>
+              </div>
+              <button class="btn btn-p" id="btn-fullscreen" onclick="openFullscreen()" style="display:none;width:100%;font-size:14px;padding:11px;">⛶ Fullscreen QR for Projector</button>
             </div>
           </div>
           <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -512,6 +558,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- ══ FULLSCREEN QR OVERLAY ══ -->
+<div class="fs-overlay" id="fs-overlay">
+  <button class="fs-close" onclick="closeFullscreen()">✕ Close Fullscreen</button>
+  <div class="fs-subject" id="fs-subject">—</div>
+  <div class="fs-qr-wrap">
+    <div id="fs-qrcode"></div>
+  </div>
+  <div class="fs-url">Scan QR above &nbsp;|&nbsp; Or visit: <span id="fs-url-short">—</span></div>
+  <div class="fs-timer">QR refreshes in <b id="fs-timer-sec">120</b> seconds</div>
+  <div class="fs-hint">Open phone camera → point at QR → tap the link → fill in your details</div>
+</div>
+
 <!-- ══ STUDENT VIEW ══ -->
 <div class="sv" id="sv">
   <div class="s-card">
@@ -559,6 +617,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="s-ico err"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/></svg></div>
       <div class="s-title err" id="sv-err-title">Error</div>
       <div class="s-desc" id="sv-err-msg">Something went wrong.</div>
+      <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">Try entering the manual session code displayed by your lecturer:</p>
+        <input type="text" id="manual-code-input" placeholder="e.g. AB12CD"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+          padding:12px;color:var(--text);font-family:monospace;font-size:20px;text-align:center;
+          letter-spacing:4px;text-transform:uppercase;outline:none;margin-bottom:8px;">
+        <button onclick="tryManualCode()"
+          style="width:100%;padding:11px;background:var(--accent);color:#0c0f1a;border:none;
+          border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+          Find Session →
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -916,6 +986,10 @@ function startSession() {
   if (activeSession) { notify('Already running'); return; }
 
   const token = mkToken();
+  // Generate a short 6-char alphanumeric code for manual entry
+  const shortCode = Math.random().toString(36).substring(2,5).toUpperCase() +
+                    Math.random().toString(36).substring(2,5).toUpperCase();
+
   const sessionData = {
     teacherId: currentTeacher.id,
     teacherName: currentTeacher.name,
@@ -924,6 +998,7 @@ function startSession() {
     subjectCode: selSubject.code,
     subjectName: selSubject.name,
     token,
+    shortCode,
     startTime: firebase.firestore.FieldValue.serverTimestamp(),
     lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp(),
     startMs: Date.now(),
@@ -932,7 +1007,7 @@ function startSession() {
   };
 
   db.collection('sessions').add(sessionData).then(ref => {
-    activeSession = { id: ref.id, ...sessionData, startMs: Date.now() };
+    activeSession = { id: ref.id, ...sessionData, startMs: Date.now(), shortCode };
     setupSessionUI();
     genQR(token, ref.id);
     startTimer();
@@ -1025,6 +1100,10 @@ function setupSessionUI() {
   document.getElementById('tok-box').style.display = '';
   document.getElementById('scan-log').style.display = '';
   document.getElementById('log-subj').textContent = selSubject.name;
+  document.getElementById('fs-btn').style.display = '';
+  if (activeSession && activeSession.shortCode) {
+    document.getElementById('short-code-val').textContent = activeSession.shortCode;
+  }
 }
 
 function teardownSessionUI() {
@@ -1036,7 +1115,12 @@ function teardownSessionUI() {
   document.getElementById('qr-title').textContent = 'No Active Session';
   document.getElementById('t-ring').style.display = 'none';
   document.getElementById('tok-box').style.display = 'none';
-  document.getElementById('qrcode').innerHTML = `<div class="qr-ph"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Session ended</p></div>`;
+  document.getElementById('fs-btn').style.display = 'none';
+  closeFullscreen();
+  document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Session ended</p></div>';
+  document.getElementById('btn-fullscreen').style.display = 'none';
+  document.getElementById('url-share-box').style.display  = 'none';
+  closeFullscreen();
   document.getElementById('st-present').textContent = '0';
   document.getElementById('st-scans').textContent   = '0';
   document.getElementById('prog-bar').style.width   = '0%';
@@ -1048,35 +1132,90 @@ function teardownSessionUI() {
 
 function mkToken() { return Math.random().toString(36).substring(2,10).toUpperCase(); }
 
-function genQR(token, sessionId) {
+function buildAttendanceUrl(token, sessionId) {
   const base = window.location.origin + window.location.pathname;
-  const url = base +
-    '?s=' + encodeURIComponent(activeSession?.subjectCode || selSubject.code) +
+  return base +
+    '?s='  + encodeURIComponent(activeSession?.subjectCode || selSubject.code) +
     '&sn=' + encodeURIComponent(activeSession?.subjectName || selSubject.name) +
-    '&t=' + token +
-    '&sid=' + (sessionId || activeSession.id) +
-    '&l=' + encodeURIComponent(selSubject.lec || '') +
+    '&t='  + token +
+    '&sid='+ (sessionId || activeSession.id) +
+    '&l='  + encodeURIComponent(selSubject.lec || '') +
     '&ss=' + (activeSession?.startMs || Date.now()) +
     '&tn=' + encodeURIComponent(currentTeacher.name);
+}
+
+function genQR(token, sessionId) {
+  const url = buildAttendanceUrl(token, sessionId);
+  window._lastQrUrl = url;
+
   document.getElementById('tok-val').textContent = token;
   document.getElementById('qrcode').innerHTML = '';
-  // Small delay ensures DOM is cleared before QRCode library writes to it
-  setTimeout(() => {
+
+  setTimeout(function() {
     try {
       if (typeof QRCode === 'undefined') {
-        document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR library not loaded.<br>Refresh the page.</p></div>';
+        document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR library not loaded. Refresh.</p></div>';
         return;
       }
+      // Normal panel QR — 186px
       new QRCode(document.getElementById('qrcode'), {
         text: url, width: 186, height: 186,
         colorDark: '#000000', colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
     } catch(e) {
-      document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR error: ' + e.message + '</p></div>';
+      document.getElementById('qrcode').innerHTML = '<div class="qr-ph"><p style="color:var(--red);font-size:11px;">QR error</p></div>';
     }
   }, 100);
+
+  // Also update fullscreen QR if overlay is open
+  if (document.getElementById('fs-overlay').classList.contains('open')) {
+    updateFullscreenQR(token, url);
+  }
 }
+
+function openFullscreen() {
+  if (!activeSession) return;
+  const overlay = document.getElementById('fs-overlay');
+  overlay.classList.add('open');
+  document.getElementById('fs-subject-label').textContent =
+    activeSession.subjectCode + ' — ' + activeSession.subjectName;
+  const base = window.location.origin + window.location.pathname;
+  document.getElementById('fs-url-label').textContent =
+    base.replace('https://', '').replace('http://','');
+  updateFullscreenQR(activeSession.token, window._lastQrUrl || buildAttendanceUrl(activeSession.token, activeSession.id));
+}
+
+function updateFullscreenQR(token, url) {
+  document.getElementById('fs-token-label').textContent = token;
+  document.getElementById('fs-qrcode').innerHTML = '';
+  setTimeout(function() {
+    try {
+      // Fullscreen QR — much larger: 480px
+      new QRCode(document.getElementById('fs-qrcode'), {
+        text: url, width: 480, height: 480,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {}
+  }, 80);
+}
+
+function closeFullscreen() {
+  document.getElementById('fs-overlay').classList.remove('open');
+}
+
+// ESC key closes fullscreen
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeFullscreen();
+});
+
+// Sync fullscreen timer with main timer
+var _fsTimerSync = setInterval(function() {
+  var el = document.getElementById('fs-sec');
+  var mainEl = document.getElementById('t-sec');
+  if (el && mainEl) el.textContent = mainEl.textContent;
+}, 1000);
 
 function startTimer() {
   timerSec = 120;
@@ -1532,6 +1671,121 @@ function showSvErr(title, msg) {
   document.getElementById('sv-err-title').textContent=title;
   document.getElementById('sv-err-msg').textContent=msg;
 }
+
+function tryManualCode() {
+  var code = (document.getElementById('manual-code-input').value || '').trim().toUpperCase();
+  if (code.length < 4) { alert('Please enter the session code shown by your lecturer.'); return; }
+
+  document.getElementById('sv-err').style.display = 'none';
+  document.getElementById('sv-loading').style.display = '';
+
+  // Search Firestore for an active session with this shortCode
+  db.collection('sessions')
+    .where('active', '==', true)
+    .where('shortCode', '==', code)
+    .get()
+    .then(function(snap) {
+      document.getElementById('sv-loading').style.display = 'none';
+      if (snap.empty) {
+        document.getElementById('sv-err').style.display = '';
+        document.getElementById('sv-err-title').textContent = 'Code Not Found';
+        document.getElementById('sv-err-msg').textContent = 'No active session found for code "' + code + '". Check the code and try again.';
+        return;
+      }
+      var doc = snap.docs[0];
+      var session = doc.data();
+      // Build fake URL params from session data and re-init student
+      var fakeParams = new URLSearchParams({
+        s:   session.subjectCode,
+        sn:  session.subjectName,
+        t:   session.token,
+        sid: doc.id,
+        l:   session.teacherName || '',
+        ss:  session.startMs || Date.now(),
+        tn:  session.teacherName || ''
+      });
+      // Replace urlP and re-run student init
+      window._manualSession = { params: fakeParams, sessionId: doc.id, session: session };
+      initStudentFromManual(fakeParams, doc.id, session);
+    })
+    .catch(function(err) {
+      document.getElementById('sv-loading').style.display = 'none';
+      document.getElementById('sv-err').style.display = '';
+      document.getElementById('sv-err-title').textContent = 'Connection Error';
+      document.getElementById('sv-err-msg').textContent = 'Could not connect. Check your internet and try again.';
+    });
+}
+
+function initStudentFromManual(params, sessionId, session) {
+  var p = {
+    subject:     params.get('s') || '',
+    subjectName: params.get('sn') || '',
+    token:       session.token,
+    sessionId:   sessionId,
+    lec:         session.teacherName || '',
+    ss:          session.startMs || 0,
+    teacher:     session.teacherName || ''
+  };
+  window._sp = p;
+  document.getElementById('sv-code').textContent  = p.subject;
+  document.getElementById('sv-sname').textContent = p.subjectName || p.subject;
+  document.getElementById('sv-meta').textContent  = p.teacher ? 'Lecturer: ' + p.teacher : 'Manual entry';
+  document.getElementById('sv-timer').textContent = 'Active';
+  document.getElementById('sv-form').style.display = '';
+
+  // Poll for session still active
+  window._stiv = setInterval(function() {
+    db.collection('sessions').doc(sessionId).get().then(function(d) {
+      if (!d.exists || !d.data().active) {
+        clearInterval(window._stiv);
+        showSvErr('Session Ended', 'The session has ended. Contact your lecturer.');
+      } else {
+        window._sp.token = d.data().token; // keep token fresh
+      }
+    }).catch(function(){});
+  }, 15000);
+}
+
+// ══════════════════════════════════════════
+//  FULLSCREEN QR
+// ══════════════════════════════════════════
+function openFullscreen() {
+  if (!activeSession) return;
+  const overlay = document.getElementById('fs-overlay');
+  overlay.classList.add('on');
+  // Try native fullscreen on the overlay
+  if (overlay.requestFullscreen) {
+    overlay.requestFullscreen().catch(function() {});
+  } else if (overlay.webkitRequestFullscreen) {
+    overlay.webkitRequestFullscreen();
+  }
+  // Sync timer with main timer
+  syncFsTimer();
+  window._fsSyncTimer = setInterval(syncFsTimer, 1000);
+}
+
+function closeFullscreen() {
+  document.getElementById('fs-overlay').classList.remove('on');
+  clearInterval(window._fsSyncTimer);
+  // Exit native fullscreen if active
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
+}
+
+function syncFsTimer() {
+  const el = document.getElementById('fs-timer-sec');
+  if (el) el.textContent = document.getElementById('t-sec').textContent;
+}
+
+// Close fullscreen with Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeFullscreen();
+});
+
+// Also hide fullscreen button and URL box when session stops
+const _origTeardown = teardownSessionUI;
 
 // ══════════════════════════════════════════
 //  STUDENT SUMMARY
