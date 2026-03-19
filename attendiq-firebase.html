@@ -810,11 +810,15 @@ function forcePreloadSubjects() {
 // ══════════════════════════════════════════
 function loadSubjects() {
   if (unsubSubjects) unsubSubjects();
-  unsubSubjects = db.collection('subjects').orderBy('createdAt','asc').onSnapshot(snap => {
-    subjects = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  unsubSubjects = db.collection('subjects').onSnapshot(function(snap) {
+    subjects = snap.docs
+      .map(function(d) { return {id:d.id,...d.data()}; })
+      .sort(function(a,b) { return (a.code||'').localeCompare(b.code||''); });
     renderSubjectList();
     renderPicker();
     document.getElementById('s-count').textContent = subjects.length;
+  }, function(err) {
+    console.error('Subjects listener error:', err.code, err.message);
   });
 }
 
@@ -1077,12 +1081,16 @@ function listenMyScans(sessionId) {
   if (unsubScans) unsubScans();
   unsubScans = db.collection('attendance')
     .where('sessionId','==',sessionId)
-    .orderBy('createdAt','asc')
-    .onSnapshot(snap => {
-      const scans = snap.docs.map(d => d.data());
+    .onSnapshot(function(snap) {
+      // Sort by time string in JS — avoids needing a Firestore composite index
+      const scans = snap.docs
+        .map(function(d) { return d.data(); })
+        .sort(function(a,b) { return (a.time||'').localeCompare(b.time||''); });
       renderScanTable(scans);
-      document.getElementById('st-present').textContent = scans.filter(s=>s.status==='Present').length;
+      document.getElementById('st-present').textContent = scans.filter(function(s){ return s.status==='Present'; }).length;
       document.getElementById('st-scans').textContent = scans.length;
+    }, function(err) {
+      console.error('Scan listener error:', err.code, err.message);
     });
 }
 
@@ -1130,14 +1138,23 @@ function listenAllSessions() {
 }
 
 function listenAllScans() {
-  db.collection('attendance').orderBy('createdAt','desc').onSnapshot(snap => {
-    allScans = snap.docs.map(d => ({id:d.id,...d.data()}));
+  // No orderBy — avoids composite index requirement. Sort in JS.
+  db.collection('attendance').onSnapshot(function(snap) {
+    allScans = snap.docs
+      .map(function(d) { return {id:d.id,...d.data()}; })
+      .sort(function(a,b) {
+        // Sort by date+time descending
+        const da = (a.date||'') + (a.time||'');
+        const db2 = (b.date||'') + (b.time||'');
+        return db2.localeCompare(da);
+      });
     updateLogStats();
     renderLog();
-    // Refresh summary if it's the active tab
     if (document.getElementById('t-summary').classList.contains('on')) {
       refreshSummaryTab();
     }
+  }, function(err) {
+    console.error('All scans listener error:', err.code, err.message);
   });
 }
 
