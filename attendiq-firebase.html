@@ -714,38 +714,11 @@ function showTeacherDashboard() {
   document.getElementById('t-name-pill').textContent = currentTeacher.name;
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-
-  // Test Firestore silently — show banner if rules have expired
-  db.collection('subjects').limit(1).get()
-    .then(() => {
-      // Connected successfully
-      loadSubjects();
-      preloadSubjectsIfEmpty();
-      listenAllSessions();
-      listenAllScans();
-    })
-    .catch(err => {
-      const code = err.code || '';
-      let msg = '';
-      if (code === 'permission-denied') {
-        msg = 'Firestore rules have expired (30-day test mode ended). Please update your Firebase security rules.';
-      } else if (code === 'unavailable') {
-        msg = 'No internet connection. Please check your network and refresh.';
-      } else {
-        msg = 'Database error: ' + (err.message || code) + '. Please refresh and try again.';
-      }
-      // Show error banner inside the dashboard
-      const banner = document.createElement('div');
-      banner.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:99;background:var(--red-bg);' +
-        'border-bottom:1px solid var(--red-bd);padding:10px 20px;display:flex;align-items:center;' +
-        'justify-content:space-between;gap:12px;';
-      banner.innerHTML = '<span style="font-size:13px;color:var(--red);font-weight:500;">⚠ ' + msg + '</span>' +
-        '<a href="https://console.firebase.google.com/project/attendiq-fms/firestore/rules" target="_blank" ' +
-        'style="background:var(--red);color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;' +
-        'font-weight:700;text-decoration:none;white-space:nowrap;">Fix Rules →</a>';
-      document.getElementById('tv').prepend(banner);
-      console.error('Firestore error:', err);
-    });
+  // Start everything immediately — no blocking connection test
+  loadSubjects();
+  preloadSubjectsIfEmpty();
+  listenAllSessions();
+  listenAllScans();
 }
 
 // ══════════════════════════════════════════
@@ -967,19 +940,20 @@ function startSession() {
   if (activeSession) { notify('Already running'); return; }
 
   const token = mkToken();
+  // Sanitize all fields — Firestore rejects undefined values
   const sessionData = {
-    teacherId: currentTeacher.id,
-    teacherName: currentTeacher.name,
-    teacherDept: currentTeacher.dept,
-    subjectId: selSubject.id,
-    subjectCode: selSubject.code,
-    subjectName: selSubject.name,
-    token,
-    startTime: firebase.firestore.FieldValue.serverTimestamp(),
+    teacherId:   currentTeacher.id   || '',
+    teacherName: currentTeacher.name || '',
+    teacherDept: currentTeacher.dept || '',
+    subjectId:   selSubject.id       || '',
+    subjectCode: selSubject.code     || '',
+    subjectName: selSubject.name     || '',
+    token:       token,
+    startTime:   firebase.firestore.FieldValue.serverTimestamp(),
     lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp(),
-    startMs: Date.now(),
-    active: true,
-    scanCount: 0
+    startMs:     Date.now(),
+    active:      true,
+    scanCount:   0
   };
 
   db.collection('sessions').add(sessionData).then(function(ref) {
