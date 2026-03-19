@@ -520,6 +520,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="dr"><span class="dk">Name</span><span class="dv" id="sv-r-name">—</span></div>
         <div class="dr"><span class="dk">Subject</span><span class="dv" id="sv-r-subj">—</span></div>
         <div class="dr"><span class="dk">Teacher</span><span class="dv" id="sv-r-teacher">—</span></div>
+        <div class="dr"><span class="dk">Date</span><span class="dv" id="sv-r-date">—</span></div>
         <div class="dr"><span class="dk">Time</span><span class="dv" id="sv-r-time">—</span></div>
         <div class="dr"><span class="dk">Status</span><span class="dv" id="sv-r-status" style="color:var(--green);">Present</span></div>
       </div>
@@ -1450,6 +1451,7 @@ function submitAttendance() {
       document.getElementById('sv-r-name').textContent    = name;
       document.getElementById('sv-r-subj').textContent    = p.subject + (p.subjectName ? ' - ' + p.subjectName : '');
       document.getElementById('sv-r-teacher').textContent = p.teacher || '-';
+      document.getElementById('sv-r-date').textContent    = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
       document.getElementById('sv-r-time').textContent    = timeStr;
       document.getElementById('sv-r-status').textContent  = status;
       document.getElementById('sv-r-status').style.color  = status === 'Late' ? 'var(--accent)' : 'var(--green)';
