@@ -126,6 +126,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 .log-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .live-pill{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
+.prog-wrap{background:var(--surface2);border-radius:20px;height:10px;width:100%;overflow:hidden;margin:4px 0 2px;}
+.prog-bar{height:10px;border-radius:20px;background:var(--green);transition:width 0.5s ease;}
+.prog-label{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px;}
+.prog-count{font-family:'DM Serif Display',serif;font-size:22px;color:var(--green);font-weight:700;}
+.prog-pct{font-size:13px;color:var(--text2);}
+.recent-title{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:600;margin:14px 0 8px;}
 
 .tbl{width:100%;border-collapse:collapse;}
 .tbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:600;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
@@ -344,6 +350,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               </div>
               <button class="btn btn-g btn-sm" onclick="exportMyCSV()">Export CSV</button>
             </div>
+
+            <!-- Progress bar for large classes -->
+            <div style="margin-bottom:14px;">
+              <div class="prog-label">
+                <span style="font-size:12px;color:var(--text2);">Students marked present</span>
+                <span class="prog-pct" id="prog-pct">0%</span>
+              </div>
+              <div class="prog-wrap"><div class="prog-bar" id="prog-bar" style="width:0%;"></div></div>
+              <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                <span style="font-size:11px;color:var(--text2);">
+                  <span class="prog-count" id="prog-present">0</span>
+                  <span style="font-size:12px;color:var(--text2);font-family:'DM Sans',sans-serif;"> present</span>
+                </span>
+                <span style="font-size:11px;color:var(--text2);">
+                  <span style="color:var(--accent);font-weight:600;" id="prog-total">0</span> total scans
+                  &nbsp;·&nbsp;
+                  <span style="color:var(--red);font-weight:600;" id="prog-late">0</span> late
+                </span>
+              </div>
+            </div>
+
+            <!-- Recent 10 scans only — keeps DOM fast for 200+ students -->
+            <div class="recent-title">Recent scans (last 10)</div>
             <table class="tbl">
               <thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Year</th><th>Time</th><th>Status</th></tr></thead>
               <tbody id="scan-body"><tr><td colspan="6" class="tbl-empty">Waiting for students to scan…</td></tr></tbody>
@@ -1009,7 +1038,12 @@ function teardownSessionUI() {
   document.getElementById('tok-box').style.display = 'none';
   document.getElementById('qrcode').innerHTML = `<div class="qr-ph"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Session ended</p></div>`;
   document.getElementById('st-present').textContent = '0';
-  document.getElementById('st-scans').textContent = '0';
+  document.getElementById('st-scans').textContent   = '0';
+  document.getElementById('prog-bar').style.width   = '0%';
+  document.getElementById('prog-pct').textContent   = '0%';
+  document.getElementById('prog-present').textContent = '0';
+  document.getElementById('prog-total').textContent   = '0';
+  document.getElementById('prog-late').textContent    = '0';
 }
 
 function mkToken() { return Math.random().toString(36).substring(2,10).toUpperCase(); }
@@ -1083,13 +1117,33 @@ function listenMyScans(sessionId) {
   unsubScans = db.collection('attendance')
     .where('sessionId','==',sessionId)
     .onSnapshot(function(snap) {
-      // Sort by time string in JS — avoids needing a Firestore composite index
       const scans = snap.docs
         .map(function(d) { return d.data(); })
         .sort(function(a,b) { return (a.time||'').localeCompare(b.time||''); });
-      renderScanTable(scans);
-      document.getElementById('st-present').textContent = scans.filter(function(s){ return s.status==='Present'; }).length;
-      document.getElementById('st-scans').textContent = scans.length;
+
+      const total   = scans.length;
+      const present = scans.filter(function(s){ return s.status==='Present'; }).length;
+      const late    = scans.filter(function(s){ return s.status==='Late'; }).length;
+
+      // Update stat cards
+      document.getElementById('st-present').textContent = present;
+      document.getElementById('st-scans').textContent   = total;
+
+      // Update progress bar
+      // Use session's enrolled count if set, otherwise use total scans as denominator
+      const enrolled = (activeSession && activeSession.enrolled) || 0;
+      const pct = enrolled > 0
+        ? Math.min(100, Math.round((present / enrolled) * 100))
+        : (total > 0 ? 100 : 0);
+
+      document.getElementById('prog-bar').style.width  = pct + '%';
+      document.getElementById('prog-pct').textContent  = pct + '%';
+      document.getElementById('prog-present').textContent = present;
+      document.getElementById('prog-total').textContent   = total;
+      document.getElementById('prog-late').textContent    = late;
+
+      // Only render the last 10 scans — keeps DOM fast for 200+ classes
+      renderScanTable(scans.slice(-10), total);
     }, function(err) {
       console.error('Scan listener error:', err.code, err.message);
     });
@@ -1159,18 +1213,24 @@ function listenAllScans() {
   });
 }
 
-function renderScanTable(scans) {
+function renderScanTable(scans, total) {
   const tbody = document.getElementById('scan-body');
-  if (!scans.length) { tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">Waiting for students to scan…</td></tr>'; return; }
-  tbody.innerHTML = [...scans].reverse().map((s,i) => `
-    <tr>
-      <td style="color:var(--text2);">${scans.length-i}</td>
-      <td style="font-family:monospace;color:var(--accent);font-size:11px;">${s.studentId}</td>
-      <td style="font-weight:500;">${s.studentName}</td>
-      <td style="color:var(--text2);">${s.year}</td>
-      <td style="color:var(--text2);">${s.time}</td>
-      <td><span class="${s.status==='Present'?'bp':'bl'}">${s.status}</span></td>
-    </tr>`).join('');
+  if (!scans.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">Waiting for students to scan…</td></tr>';
+    return;
+  }
+  const t = total || scans.length;
+  // Show last 10 in reverse (most recent first), use real total for numbering
+  tbody.innerHTML = [...scans].reverse().map(function(s, i) {
+    return '<tr>' +
+      '<td style="color:var(--text2);">' + (t - i) + '</td>' +
+      '<td style="font-family:monospace;color:var(--accent);font-size:11px;">' + s.studentId + '</td>' +
+      '<td style="font-weight:500;">' + s.studentName + '</td>' +
+      '<td style="color:var(--text2);">' + (s.year||'—') + '</td>' +
+      '<td style="color:var(--text2);">' + s.time + '</td>' +
+      '<td><span class="' + (s.status==='Present'?'bp':'bl') + '">' + s.status + '</span></td>' +
+      '</tr>';
+  }).join('');
 }
 
 function renderAllSessions(sessions) {
@@ -1396,31 +1456,31 @@ function submitAttendance() {
     btn.textContent = 'Mark My Attendance';
   }
 
-  // Check 1 - Has this DEVICE already submitted for this session?
+  // Single batched read — get all records for this session at once
+  // then check device AND studentId locally. Only 1 Firestore read instead of 2.
   db.collection('attendance')
     .where('sessionId', '==', p.sessionId)
-    .where('deviceId',  '==', deviceId)
     .get()
-    .then(function(deviceSnap) {
-      if (!deviceSnap.empty) {
+    .then(function(snap) {
+      const existing = snap.docs.map(function(d) { return d.data(); });
+
+      // Check device
+      const deviceDup = existing.find(function(r) { return r.deviceId === deviceId; });
+      if (deviceDup) {
         resetBtn();
         showSvErr('Already Submitted', 'Attendance has already been marked from this device for this session. Each device can only submit once.');
         return Promise.reject('duplicate_device');
       }
-      // Check 2 - Has this STUDENT ID already been submitted?
-      return db.collection('attendance')
-        .where('sessionId', '==', p.sessionId)
-        .where('studentId', '==', id)
-        .get();
-    })
-    .then(function(idSnap) {
-      if (!idSnap) return; // was rejected above
-      if (!idSnap.empty) {
+
+      // Check student ID
+      const idDup = existing.find(function(r) { return r.studentId === id; });
+      if (idDup) {
         resetBtn();
         showSvErr('Already Marked', 'Attendance for Student ID ' + id + ' has already been recorded for this session.');
         return Promise.reject('duplicate_id');
       }
-      // Both checks passed - save to Firestore
+
+      // Both checks passed — save to Firestore
       btn.textContent = 'Saving...';
       return db.collection('attendance').add({
         sessionId:   p.sessionId,
