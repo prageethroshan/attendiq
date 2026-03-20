@@ -1289,6 +1289,8 @@ function goTab(id, btn) {
   if (id === 'log' || id === 'summary') loadAllScansForRange();
   if (id === 'log') refreshLogTab();
   if (id === 'summary') refreshSummaryTab();
+  // Repopulate enrollment selectors on every tab switch so subjects are always fresh
+  if (id === 'enrollments') populateEnrollmentSelectors();
 }
 
 
