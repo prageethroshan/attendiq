@@ -2421,6 +2421,7 @@ function submitAttendance() {
   function resetBtn() { btn.disabled = false; btn.textContent = 'Mark My Attendance'; }
 
   function saveRecord(studentLat, studentLng, distMetres) {
+    // Compute time values HERE so they're available in scope
     const minsDiff = p.ss ? Math.round((Date.now() - p.ss) / 60000) : 0;
     const status   = minsDiff > (p.graceMins || 15) ? 'Late' : 'Present';
     const now      = new Date();
@@ -2429,20 +2430,25 @@ function submitAttendance() {
 
     btn.textContent = 'Checking enrollment…';
 
-    // Enrollment validation -- runs before the transaction
     checkEnrollment(p.subject, id)
       .then(function(enrollEntry) {
         var verifiedName = (enrollEntry && enrollEntry.name) ? enrollEntry.name : name;
-        doSaveRecord(studentLat, studentLng, distMetres, verifiedName);
+        // Pass all computed values as params — doSaveRecord can't reach saveRecord's scope
+        doSaveRecord(studentLat, studentLng, distMetres, verifiedName, status, timeStr, dateStr);
       })
       .catch(function(err) {
         resetBtn();
-        if (err && err.title) { showSvErr(err.title, err.msg); }
-        else { showSvErr('Enrollment Check Failed', 'Could not verify enrollment. Check your connection.'); console.error(err); }
+        if (err && err.title) {
+          showSvErr(err.title, err.msg);   // "Not Enrolled" rejection
+        } else {
+          // Unexpected JS error — show the real message in console
+          console.error('checkEnrollment unexpected error:', err);
+          showSvErr('Verification Error', 'Something went wrong during enrollment check. Please try again.');
+        }
       });
   }
 
-  function doSaveRecord(studentLat, studentLng, distMetres, verifiedName) {
+  function doSaveRecord(studentLat, studentLng, distMetres, verifiedName, status, timeStr, dateStr) {
     btn.textContent = 'Saving...';
 
     // PERF FIX 3: Firestore transaction with sentinel docs.
