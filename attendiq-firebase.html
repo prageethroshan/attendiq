@@ -2608,21 +2608,20 @@ function renderSummary() {
   const yearFilter   = document.getElementById('sf-year').value;
   const statusFilter = document.getElementById('sf-status').value;
 
-  // Get all unique session dates per subject
-  // We need to know how many sessions ran for each subject
-  // Group scans by subjectCode → sessionId to count unique sessions
+  // Use extended 30-day dataset if loaded, otherwise fall back to today
+  const summSrc = (allScansExtended && allScansExtended.length) ? allScansExtended : allScans;
+
   const sessionsBySubject = {};
   const sessionDateMap = {};
-  allScans.forEach(r => {
+  summSrc.forEach(r => {
     if (!sessionsBySubject[r.subjectCode]) sessionsBySubject[r.subjectCode] = new Set();
     sessionsBySubject[r.subjectCode].add(r.sessionId);
-    // Map sessionId → date for absent date display
     if (!sessionDateMap[r.sessionId]) sessionDateMap[r.sessionId] = r.date;
   });
 
   // Build per-student summary: key = subjectCode|studentId
   const summary = {};
-  allScans.forEach(r => {
+  summSrc.forEach(r => {
     const key = r.subjectCode + '|' + r.studentId;
     if (!summary[key]) {
       summary[key] = {
@@ -2720,16 +2719,17 @@ function exportSummary() {
   const subjFilter = document.getElementById('sf-subj').value;
   const yearFilter = document.getElementById('sf-year').value;
 
+  const expSrc = (allScansExtended && allScansExtended.length) ? allScansExtended : allScans;
   const sessionsBySubject = {};
   const sessionDateMap = {};
-  allScans.forEach(r => {
+  expSrc.forEach(r => {
     if (!sessionsBySubject[r.subjectCode]) sessionsBySubject[r.subjectCode] = new Set();
     sessionsBySubject[r.subjectCode].add(r.sessionId);
     if (!sessionDateMap[r.sessionId]) sessionDateMap[r.sessionId] = r.date;
   });
 
   const summary = {};
-  allScans.forEach(r => {
+  expSrc.forEach(r => {
     const key = r.subjectCode + '|' + r.studentId;
     if (!summary[key]) {
       summary[key] = {
