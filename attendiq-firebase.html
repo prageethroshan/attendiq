@@ -324,6 +324,21 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 .geo-teacher-bar{border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;display:none;align-items:center;gap:8px;}
 .geo-teacher-bar.show{display:flex;}
 
+/* ── ENROLLMENT ── */
+.enroll-drop{border:2px dashed var(--border2);border-radius:var(--rs);padding:1.5rem 1rem;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;margin-bottom:10px;}
+.enroll-drop:hover,.enroll-drop.over{border-color:var(--accent);background:var(--accent-bg);}
+.enroll-drop p{font-size:13px;color:var(--text2);margin-top:6px;}
+.enroll-drop input[type=file]{display:none;}
+.enroll-badge{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;}
+.enroll-badge.none{background:var(--surface2);color:var(--text3);border-color:var(--border);}
+.enroll-preview{max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--rs);margin-bottom:10px;}
+.enroll-preview table{width:100%;border-collapse:collapse;font-size:12px;}
+.enroll-preview th{background:var(--surface2);padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.7px;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);position:sticky;top:0;}
+.enroll-preview td{padding:6px 10px;border-bottom:1px solid var(--border);}
+.enroll-preview tr:last-child td{border-bottom:none;}
+.enroll-preview tr:hover td{background:var(--surface2);}
+.ep-tag{background:var(--red-bg);color:var(--red);border-radius:3px;padding:1px 5px;font-size:10px;font-weight:700;}
+
 /* ── FULLSCREEN QR ── */
 /* fullscreen styles below */
 
@@ -459,6 +474,7 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
   <div class="nav">
     <button class="nb on" onclick="goTab('subjects',this)">Subjects</button>
+    <button class="nb" onclick="goTab('enrollments',this)">Enrollments</button>
     <button class="nb" onclick="goTab('session',this)">My Session</button>
     <button class="nb" onclick="goTab('live',this)">All Live Sessions</button>
     <button class="nb" onclick="goTab('log',this)">Attendance Log</button>
@@ -497,6 +513,56 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="card">
           <div class="ctitle">All Subjects (<span id="s-count">0</span>)</div>
           <div class="slist" id="slist"><div class="empty">Loading subjects…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENROLLMENTS -->
+    <div class="tab" id="t-enrollments">
+      <div class="pg-title">Student Enrollment Lists</div>
+      <div class="pg-sub">Upload a CSV of enrolled students per subject. Attendance will only be accepted from registered Student IDs.</div>
+      <div class="g2">
+        <!-- Upload panel -->
+        <div class="card">
+          <div class="ctitle">Upload Enrollment CSV</div>
+          <div class="fg" style="margin-bottom:10px;">
+            <label>Subject</label>
+            <select id="enroll-subject-sel" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 11px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;width:100%;">
+              <option value="">— Select a subject —</option>
+            </select>
+          </div>
+          <div class="enroll-drop" id="enroll-drop" onclick="document.getElementById('enroll-file').click()" ondragover="enrollDragOver(event)" ondragleave="enrollDragLeave(event)" ondrop="enrollDrop(event)">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>Click or drag &amp; drop a CSV file here</p>
+            <p style="font-size:11px;color:var(--text3);margin-top:4px;">Columns: <strong>StudentID</strong> (required) · Name · Year</p>
+            <input type="file" id="enroll-file" accept=".csv,text/csv" onchange="enrollFileSelected(this)">
+          </div>
+          <div id="enroll-preview-wrap" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span id="enroll-preview-label" style="font-size:12px;font-weight:600;color:var(--text2);"></span>
+              <button class="btn btn-g btn-sm" onclick="clearEnrollPreview()">✕ Clear</button>
+            </div>
+            <div class="enroll-preview" id="enroll-preview"></div>
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <button class="btn btn-p" id="enroll-save-btn" onclick="saveEnrollment()">⬆ Save to Firebase</button>
+              <span style="font-size:11px;color:var(--text3);align-self:center;">This replaces any existing list for the selected subject.</span>
+            </div>
+          </div>
+          <div id="enroll-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:var(--rs);margin-top:8px;"></div>
+        </div>
+
+        <!-- Existing enrollments panel -->
+        <div class="card">
+          <div class="ctitle">Enrolled Students by Subject</div>
+          <div class="fg" style="margin-bottom:10px;">
+            <label>Filter Subject</label>
+            <select id="enroll-view-sel" onchange="viewEnrollment()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 11px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;width:100%;">
+              <option value="">— Select subject to view —</option>
+            </select>
+          </div>
+          <div id="enroll-view-out">
+            <div class="empty" style="padding:2rem;">Select a subject to see its enrollment list.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -575,6 +641,12 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
               </div>
             </div>
             <div id="geo-teacher-bar" class="geo-teacher-bar"></div>
+            <!-- Enrollment validation override -->
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+              <input type="checkbox" id="enroll-strict" checked style="accent-color:var(--accent);cursor:pointer;">
+              <label for="enroll-strict" style="cursor:pointer;">Only allow registered students (requires enrollment list)</label>
+            </div>
+            <div id="enroll-session-info" style="font-size:11px;color:var(--text3);margin-bottom:6px;display:none;"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
               <button class="btn btn-p" id="btn-start" onclick="startSession()">▶ Start Session</button>
               <button class="btn btn-d" id="btn-stop" onclick="stopSession()" style="display:none;">■ Stop Session</button>
@@ -1394,14 +1466,20 @@ function removeSubject(id, code) {
 function renderSubjectList() {
   const el = document.getElementById('slist');
   if (!subjects.length) { el.innerHTML = '<div class="empty">No subjects yet. Add one on the left.</div>'; return; }
-  el.innerHTML = subjects.map(s => `
-    <div class="si">
-      <div class="si-l">
-        <div class="sbadge">${s.code}</div>
-        <div><div class="si-name">${s.name}</div><div class="si-meta">${s.dept} · ${s.year} · ${s.lec||'—'} · ${s.time}</div></div>
-      </div>
-      <button class="btn btn-d btn-sm" onclick="removeSubject('${s.id}','${s.code}')">Remove</button>
-    </div>`).join('');
+  el.innerHTML = subjects.map(s => {
+    var count = enrollmentCounts[s.code];
+    var badge = count != null
+      ? '<span class="enroll-badge">' + count + ' enrolled</span>'
+      : '<span class="enroll-badge none">No list</span>';
+    return '<div class="si">' +
+      '<div class="si-l">' +
+        '<div class="sbadge">' + s.code + '</div>' +
+        '<div><div class="si-name">' + s.name + '</div>' +
+        '<div class="si-meta" style="display:flex;align-items:center;gap:6px;">' + s.dept + ' · ' + s.year + ' ' + badge + '</div></div>' +
+      '</div>' +
+      '<button class="btn btn-d btn-sm" onclick="removeSubject(\'' + s.id + '\',\'' + s.code + '\')">\Remove</button>' +
+    '</div>';
+  }).join('');
 }
 
 function populatePickerDepts() {
@@ -2180,10 +2258,11 @@ function initStudent() {
     document.getElementById('sv-meta').textContent = p.teacher ? 'Lecturer: '+p.teacher : 'Mark your attendance';
     document.getElementById('sv-form').style.display = '';
     document.getElementById('sv-timer').textContent = 'Active';
-    p.geoEnabled = session.geoEnabled || false;
-    p.geoLat     = session.geoLat     || 0;
-    p.geoLng     = session.geoLng     || 0;
-    p.geoRadius  = session.geoRadius  || 100;
+    p.geoEnabled   = session.geoEnabled   || false;
+    p.geoLat       = session.geoLat       || 0;
+    p.geoLng       = session.geoLng       || 0;
+    p.geoRadius    = session.geoRadius    || 100;
+    p.enrollStrict = session.enrollStrict || false;
     window._sp = p;
     // Show initial grace period status
     if (p.ss) {
@@ -2300,6 +2379,22 @@ function submitAttendance() {
     const timeStr  = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
     const dateStr  = now.toLocaleDateString('en-CA');
 
+    btn.textContent = 'Checking enrollment…';
+
+    // Enrollment validation -- runs before the transaction
+    checkEnrollment(p.subject, id)
+      .then(function(enrollEntry) {
+        var verifiedName = (enrollEntry && enrollEntry.name) ? enrollEntry.name : name;
+        doSaveRecord(studentLat, studentLng, distMetres, verifiedName);
+      })
+      .catch(function(err) {
+        resetBtn();
+        if (err && err.title) { showSvErr(err.title, err.msg); }
+        else { showSvErr('Enrollment Check Failed', 'Could not verify enrollment. Check your connection.'); console.error(err); }
+      });
+  }
+
+  function doSaveRecord(studentLat, studentLng, distMetres, verifiedName) {
     btn.textContent = 'Saving...';
 
     // PERF FIX 3: Firestore transaction with sentinel docs.
@@ -2317,7 +2412,7 @@ function submitAttendance() {
 
     var rec = {
       sessionId: p.sessionId, subjectCode: p.subject, subjectName: p.subjectName,
-      teacherName: p.teacher, studentId: id, studentName: name, year: year,
+      teacherName: p.teacher, studentId: id, studentName: verifiedName, year: year,
       date: dateStr, time: timeStr, token: p.token, deviceId: deviceId,
       status: status, geoVerified: studentLat !== null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -2466,10 +2561,11 @@ function initStudentFromManual(params, sessionId, session) {
     ss:          session.startMs || 0,
     teacher:     session.teacherName || ''
   };
-  p.geoEnabled = session.geoEnabled || false;
-  p.geoLat     = session.geoLat     || 0;
-  p.geoLng     = session.geoLng     || 0;
-  p.geoRadius  = session.geoRadius  || 100;
+  p.geoEnabled   = session.geoEnabled   || false;
+  p.geoLat       = session.geoLat       || 0;
+  p.geoLng       = session.geoLng       || 0;
+  p.geoRadius    = session.geoRadius    || 100;
+  p.enrollStrict = session.enrollStrict || false;
   window._sp = p;
   document.getElementById('sv-code').textContent  = p.subject;
   document.getElementById('sv-sname').textContent = p.subjectName || p.subject;
@@ -3112,6 +3208,244 @@ function lvToggleSubj(hdr) {
   var chev = hdr.querySelector('.lv-chevron');
   var open = body.classList.toggle('open');
   if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+
+// ══════════════════════════════════════════
+//  ENROLLMENT LISTS
+// ══════════════════════════════════════════
+var enrollmentCounts = {};   // subjectCode → count (for badge)
+var enrollmentCache  = {};   // subjectCode → [{id, name, year}] (for validation)
+
+// Load enrollment counts for all subjects (lightweight — just document exists + size field)
+function loadEnrollmentCounts() {
+  db.collection('enrollments').get().then(function(snap) {
+    enrollmentCounts = {};
+    snap.docs.forEach(function(d) {
+      var data = d.data();
+      enrollmentCounts[d.id] = data.count || (data.students ? data.students.length : 0);
+    });
+    renderSubjectList();
+    populateEnrollmentSelectors();
+  }).catch(function(err) { console.error('loadEnrollmentCounts:', err); });
+}
+
+function populateEnrollmentSelectors() {
+  var codes = subjects.map(function(s){ return {code:s.code, name:s.name}; });
+  ['enroll-subject-sel','enroll-view-sel'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">' + (id==='enroll-subject-sel'?'— Select a subject —':'— Select subject to view —') + '</option>';
+    codes.forEach(function(s) {
+      var count = enrollmentCounts[s.code];
+      var label = s.code + ' — ' + s.name + (count!=null?' ('+count+' enrolled)':'');
+      sel.innerHTML += '<option value="'+s.code+'"'+(cur===s.code?' selected':'')+'>'+label+'</option>';
+    });
+  });
+}
+
+// ── CSV PARSING ───────────────────────────────────────────────────────
+function parseEnrollmentCSV(text) {
+  var lines = text.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+  if (!lines.length) return [];
+  // Detect header row — if first cell looks like a header word, skip it
+  var firstCell = lines[0].split(',')[0].replace(/"/g,'').trim().toUpperCase();
+  var hasHeader = /^(STUDENT|ID|REG|S_?NO|INDEX|NO\.?)/.test(firstCell);
+  if (hasHeader) lines.shift();
+  return lines.map(function(line) {
+    // Split respecting quoted fields
+    var cols = line.split(',').map(function(v){ return v.replace(/^"|"$/g,'').trim(); });
+    return {
+      id:   (cols[0] || '').toUpperCase(),
+      name: cols[1] || '',
+      year: cols[2] || ''
+    };
+  }).filter(function(r){ return r.id.length > 1; }); // skip blank ID rows
+}
+
+function enrollFileSelected(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) { showEnrollPreview(e.target.result); };
+  reader.readAsText(file);
+  input.value = ''; // allow re-selecting same file
+}
+
+function enrollDragOver(e) { e.preventDefault(); document.getElementById('enroll-drop').classList.add('over'); }
+function enrollDragLeave(e) { document.getElementById('enroll-drop').classList.remove('over'); }
+function enrollDrop(e) {
+  e.preventDefault();
+  document.getElementById('enroll-drop').classList.remove('over');
+  var file = e.dataTransfer.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) { showEnrollPreview(ev.target.result); };
+  reader.readAsText(file);
+}
+
+var _pendingEnrollStudents = [];
+function showEnrollPreview(csvText) {
+  _pendingEnrollStudents = parseEnrollmentCSV(csvText);
+  var wrap  = document.getElementById('enroll-preview-wrap');
+  var prev  = document.getElementById('enroll-preview');
+  var label = document.getElementById('enroll-preview-label');
+  enrollMsg('');
+  if (!_pendingEnrollStudents.length) {
+    enrollMsg('No valid student IDs found in the CSV. Make sure the first column is Student ID.', 'err');
+    return;
+  }
+  // Check for duplicate IDs in the file
+  var ids = _pendingEnrollStudents.map(function(r){ return r.id; });
+  var dupes = ids.filter(function(id, i){ return ids.indexOf(id) !== i; });
+  label.textContent = _pendingEnrollStudents.length + ' students parsed' + (dupes.length ? ' (' + dupes.length + ' duplicate IDs flagged)' : '');
+  prev.innerHTML = '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Year</th></tr></thead><tbody>' +
+    _pendingEnrollStudents.map(function(r, i) {
+      var isDupe = dupes.indexOf(r.id) !== -1;
+      return '<tr><td style="color:var(--text3);">'+(i+1)+'</td>' +
+        '<td style="font-family:monospace;color:var(--accent);">'+r.id+(isDupe?'<span class="ep-tag">dup</span>':'')+' </td>' +
+        '<td>'+(r.name||'—')+'</td><td>'+(r.year||'—')+'</td></tr>';
+    }).join('') + '</tbody></table>';
+  wrap.style.display = '';
+}
+
+function clearEnrollPreview() {
+  _pendingEnrollStudents = [];
+  document.getElementById('enroll-preview-wrap').style.display = 'none';
+  document.getElementById('enroll-preview').innerHTML = '';
+  enrollMsg('');
+}
+
+function enrollMsg(msg, type) {
+  var el = document.getElementById('enroll-msg');
+  if (!msg) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.style.background = type==='err' ? 'var(--red-bg)'   : 'var(--green-bg)';
+  el.style.border     = '1px solid ' + (type==='err' ? 'var(--red-bd)'  : 'var(--green-bd)');
+  el.style.color      = type==='err' ? 'var(--red)'      : 'var(--green)';
+  el.textContent      = msg;
+}
+
+function saveEnrollment() {
+  var subjectCode = document.getElementById('enroll-subject-sel').value;
+  if (!subjectCode) { enrollMsg('Please select a subject first.', 'err'); return; }
+  if (!_pendingEnrollStudents.length) { enrollMsg('No students to save. Parse a CSV first.', 'err'); return; }
+
+  var btn = document.getElementById('enroll-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  // Deduplicate by ID before saving
+  var seen = {};
+  var unique = _pendingEnrollStudents.filter(function(r) {
+    if (seen[r.id]) return false;
+    seen[r.id] = true; return true;
+  });
+
+  db.collection('enrollments').doc(subjectCode).set({
+    subjectCode: subjectCode,
+    students:    unique,
+    count:       unique.length,
+    updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    updatedBy:   currentTeacher ? currentTeacher.name : 'unknown'
+  }).then(function() {
+    enrollMsg('✓ ' + unique.length + ' students saved for ' + subjectCode, 'ok');
+    enrollmentCounts[subjectCode] = unique.length;
+    enrollmentCache[subjectCode]  = unique;
+    btn.disabled = false; btn.textContent = '⬆ Save to Firebase';
+    clearEnrollPreview();
+    renderSubjectList();
+    populateEnrollmentSelectors();
+    document.getElementById('enroll-subject-sel').value = '';
+  }).catch(function(err) {
+    enrollMsg('Failed to save: ' + err.message, 'err');
+    btn.disabled = false; btn.textContent = '⬆ Save to Firebase';
+  });
+}
+
+// ── VIEW EXISTING ENROLLMENT ──────────────────────────────────────────
+function viewEnrollment() {
+  var code = document.getElementById('enroll-view-sel').value;
+  var out  = document.getElementById('enroll-view-out');
+  if (!code) { out.innerHTML = '<div class="empty" style="padding:2rem;">Select a subject to see its enrollment list.</div>'; return; }
+  out.innerHTML = '<div class="empty" style="padding:1.5rem;">Loading…</div>';
+
+  // Use cache if available
+  if (enrollmentCache[code]) { renderEnrollView(code, enrollmentCache[code]); return; }
+
+  db.collection('enrollments').doc(code).get().then(function(doc) {
+    if (!doc.exists || !doc.data().students) {
+      out.innerHTML = '<div class="empty" style="padding:2rem;">No enrollment list uploaded for ' + code + '.</div>';
+      return;
+    }
+    var list = doc.data().students;
+    enrollmentCache[code] = list;
+    renderEnrollView(code, list);
+  }).catch(function(err) {
+    out.innerHTML = '<div class="empty" style="padding:2rem;color:var(--red);">Error loading list.</div>';
+  });
+}
+
+function renderEnrollView(code, list) {
+  var out = document.getElementById('enroll-view-out');
+  out.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+    '<span style="font-size:12px;font-weight:600;color:var(--text2);">' + list.length + ' students enrolled in ' + code + '</span>' +
+    '<button class="btn btn-d btn-sm" onclick="deleteEnrollment(\'' + code + '\')">✕ Delete List</button></div>' +
+    '<div class="enroll-preview">' +
+    '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Year</th></tr></thead><tbody>' +
+    list.map(function(r, i) {
+      return '<tr><td style="color:var(--text3);">'+(i+1)+'</td>' +
+        '<td style="font-family:monospace;color:var(--accent);">'+r.id+'</td>' +
+        '<td>'+(r.name||'—')+'</td><td>'+(r.year||'—')+'</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function deleteEnrollment(code) {
+  if (!confirm('Delete the entire enrollment list for ' + code + '? This cannot be undone.')) return;
+  db.collection('enrollments').doc(code).delete().then(function() {
+    delete enrollmentCounts[code];
+    delete enrollmentCache[code];
+    notify('Enrollment list deleted for ' + code);
+    renderSubjectList();
+    populateEnrollmentSelectors();
+    document.getElementById('enroll-view-sel').value = '';
+    document.getElementById('enroll-view-out').innerHTML = '<div class="empty" style="padding:2rem;">Select a subject to see its enrollment list.</div>';
+  }).catch(function(err) { notify('Delete failed: ' + err.message, 'err'); });
+}
+
+// ── ENROLLMENT VALIDATION ON STUDENT SUBMIT ───────────────────────────
+// Called inside saveRecord() before the transaction.
+// Returns a Promise that resolves to the student's enrollment entry (or null if not enforced).
+// Rejects with a user-visible message if the student is not enrolled.
+function checkEnrollment(subjectCode, studentId) {
+  var isStrict = window._sp && window._sp.enrollStrict;
+  if (!isStrict) return Promise.resolve(null); // strict mode off → skip
+
+  // Try in-memory cache first (fast)
+  if (enrollmentCache[subjectCode]) {
+    var found = enrollmentCache[subjectCode].find(function(r){ return r.id === studentId; });
+    if (found) return Promise.resolve(found);
+    return Promise.reject({
+      title: 'Not Enrolled',
+      msg: 'Student ID ' + studentId + ' is not on the enrollment list for this subject. If you believe this is an error, contact your lecturer.'
+    });
+  }
+
+  // Fetch from Firestore (only on first miss per subject per session)
+  return db.collection('enrollments').doc(subjectCode).get().then(function(doc) {
+    if (!doc.exists || !doc.data().students) {
+      // No enrollment list uploaded → allow everyone through (warn teacher in session)
+      return null;
+    }
+    var list = doc.data().students;
+    enrollmentCache[subjectCode] = list; // cache for remaining students
+    var found = list.find(function(r){ return r.id === studentId; });
+    if (found) return found;
+    return Promise.reject({
+      title: 'Not Enrolled',
+      msg: 'Student ID ' + studentId + ' is not on the enrollment list for this subject. If you believe this is an error, contact your lecturer.'
+    });
+  });
 }
 
 // ══════════════════════════════════════════
