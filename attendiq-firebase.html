@@ -174,6 +174,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── STUDENT ── */
 .sv{display:none;}
 .sv.on{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.25rem;background:var(--bg);}
+#manual-entry-view{display:none;}
+#manual-entry-view.on{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.25rem;background:var(--bg);}
 .s-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.75rem 1.5rem;width:100%;max-width:400px;}
 .s-brand{display:flex;align-items:center;gap:9px;margin-bottom:1.5rem;}
 .s-bico{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
@@ -208,90 +210,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .s-detail{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;margin:1.1rem 0;text-align:left;}
 .dr{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}
 .dk{color:var(--text2);}.dv{font-weight:500;}
-
-/* ── STUDENT LOOKUP ── */
-.lv{display:none;}
-.lv.on{display:block;min-height:100vh;background:var(--bg);}
-.lv-hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;}
-.lv-hdr-r{display:flex;align-items:center;gap:10px;}
-.lv-back{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:5px 12px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color 0.15s;}
-.lv-back:hover{border-color:var(--border2);color:var(--text);}
-.lv-hero{background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border-bottom:1px solid var(--border);padding:2.5rem 1.5rem 2rem;}
-.lv-hero-inner{max-width:600px;margin:0 auto;text-align:center;}
-.lv-hero-title{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:8px;}
-.lv-hero-sub{font-size:14px;color:var(--text2);margin-bottom:2rem;line-height:1.6;}
-.lv-search{display:flex;gap:10px;max-width:480px;margin:0 auto;}
-.lv-input{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:var(--rs);padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color 0.15s;letter-spacing:0.5px;}
-.lv-input:focus{border-color:var(--accent);}
-.lv-input::placeholder{color:var(--text3);letter-spacing:0;}
-.lv-btn{padding:13px 22px;background:var(--accent);color:#0c0f1a;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background 0.12s,transform 0.1s;white-space:nowrap;}
-.lv-btn:hover{background:var(--accent2);}
-.lv-btn:active{transform:scale(0.97);}
-.lv-btn:disabled{background:var(--surface2);color:var(--text2);cursor:not-allowed;}
-.lv-main{max-width:760px;margin:0 auto;padding:2rem 1.5rem;}
-
-/* Lookup states */
-.lv-idle{text-align:center;padding:4rem 1rem;color:var(--text3);}
-.lv-idle svg{opacity:0.25;margin-bottom:1rem;}
-.lv-idle p{font-size:14px;line-height:1.6;}
-.lv-loading{text-align:center;padding:3rem;}
-.lv-not-found{text-align:center;padding:3rem 1rem;}
-.lv-nf-ico{width:64px;height:64px;border-radius:50%;background:var(--red-bg);border:2px solid var(--red-bd);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
-.lv-nf-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--red);margin-bottom:8px;}
-.lv-nf-desc{font-size:13px;color:var(--text2);line-height:1.6;}
-
-/* Results */
-.lv-id-banner{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
-.lv-id-left{display:flex;align-items:center;gap:12px;}
-.lv-avatar{width:42px;height:42px;border-radius:50%;background:var(--accent-bg);border:2px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:17px;color:var(--accent);flex-shrink:0;}
-.lv-student-name{font-size:16px;font-weight:600;}
-.lv-student-id{font-size:11px;color:var(--text2);font-family:monospace;margin-top:2px;}
-.lv-clear-btn{background:none;border:1px solid var(--border);border-radius:var(--rs);padding:5px 12px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;}
-.lv-clear-btn:hover{border-color:var(--border2);color:var(--text);}
-
-.lv-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
-@media(max-width:600px){.lv-overview{grid-template-columns:repeat(2,1fr);}.lv-search{flex-direction:column;}.lv-btn{width:100%;}}
-.lv-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:14px 16px;text-align:center;}
-.lv-stat-val{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:3px;}
-.lv-stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:600;}
-.lv-stat-val.gn{color:var(--green);}
-.lv-stat-val.am{color:var(--accent);}
-.lv-stat-val.rd{color:var(--red);}
-
-.lv-subj-list{display:flex;flex-direction:column;gap:12px;}
-.lv-subj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
-.lv-subj-card.danger{border-color:var(--red-bd);}
-.lv-subj-card.warn{border-color:var(--accent-bd);}
-.lv-subj-card.good{border-color:var(--green-bd);}
-.lv-sc-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;gap:10px;}
-.lv-sc-hdr:hover{background:var(--surface2);}
-.lv-sc-left{display:flex;align-items:center;gap:12px;}
-.lv-sc-code{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-bd);border-radius:var(--rxs);padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;}
-.lv-sc-name{font-size:14px;font-weight:500;}
-.lv-sc-dept{font-size:11px;color:var(--text2);margin-top:2px;}
-.lv-sc-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
-.lv-pct-ring{position:relative;flex-shrink:0;}
-.lv-pct-ring svg{transform:rotate(-90deg);}
-.lv-pct-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
-.lv-sc-stats{text-align:right;}
-.lv-sc-stat-main{font-family:'DM Serif Display',serif;font-size:18px;}
-.lv-sc-stat-main.gn{color:var(--green);}
-.lv-sc-stat-main.am{color:var(--accent);}
-.lv-sc-stat-main.rd{color:var(--red);}
-.lv-sc-stat-sub{font-size:10px;color:var(--text2);}
-.lv-chevron{transition:transform 0.2s;flex-shrink:0;}
-.lv-sc-body{display:none;border-top:1px solid var(--border);padding:0 18px 14px;}
-.lv-sc-body.open{display:block;}
-.lv-session-tbl{width:100%;border-collapse:collapse;margin-top:10px;}
-.lv-session-tbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border);}
-.lv-session-tbl td{padding:8px 8px;border-bottom:1px solid var(--border);font-size:12px;}
-.lv-session-tbl tr:last-child td{border-bottom:none;}
-.lv-session-tbl tr:hover td{background:var(--surface2);}
-.ls-present{color:var(--green);font-weight:700;font-size:11px;}
-.ls-late{color:var(--accent);font-weight:700;font-size:11px;}
-.ls-absent{color:var(--red);font-weight:700;font-size:11px;}
-.lv-bar-wrap{background:var(--surface2);border-radius:20px;height:6px;min-width:80px;}
-.lv-bar{height:6px;border-radius:20px;transition:width 0.6s ease;}
 
 /* ── FULLSCREEN QR ── */
 /* fullscreen styles below */
@@ -335,45 +253,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .leg-dot{width:9px;height:9px;border-radius:50%;}
 .absent-list{font-size:10px;color:var(--text3);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sum-empty{text-align:center;padding:3rem;color:var(--text3);font-size:13px;}
-
-/* ── EDIT PANEL ── */
-.edit-panel{background:var(--surface);border:1px solid var(--accent-bd);border-radius:var(--r);margin-bottom:16px;overflow:hidden;}
-.edit-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);}
-.edit-panel-hdr:hover{background:var(--surface2);}
-.edit-panel-title{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--accent);}
-.edit-panel-badge{background:var(--accent-bg);border:1px solid var(--accent-bd);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:var(--accent);}
-.edit-panel-body{padding:16px 18px;display:none;}
-.edit-panel-body.open{display:block;}
-.edit-panel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
-.ep-fg{display:flex;flex-direction:column;gap:4px;}
-.ep-fg label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);}
-.ep-fg input,.ep-fg select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;transition:border-color 0.15s;}
-.ep-fg input:focus,.ep-fg select:focus{border-color:var(--accent);}
-.ep-fg select option{background:#1b2035;}
-.ep-hint{font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5;}
-.ep-divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
-
-/* Row action buttons */
-.act-btn{padding:3px 9px;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all 0.12s;white-space:nowrap;}
-.act-btn:active{transform:scale(0.96);}
-.act-edit{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);}
-.act-edit:hover{background:rgba(91,156,246,0.2);}
-.act-del{background:var(--red-bg);color:var(--red);border-color:var(--red-bd);}
-.act-del:hover{background:rgba(240,92,92,0.2);}
-.act-cell{display:flex;gap:5px;align-items:center;}
-
-/* Status-change inline dropdown */
-.status-sel{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;padding:3px 6px;outline:none;cursor:pointer;}
-.status-sel:focus{border-color:var(--accent);}
-.status-sel option{background:#1b2035;}
-
-/* Confirm remove overlay */
-.rm-confirm{position:fixed;inset:0;background:rgba(12,15,26,0.85);display:none;align-items:center;justify-content:center;z-index:200;padding:1.5rem;}
-.rm-confirm.on{display:flex;}
-.rm-box{background:var(--surface);border:1px solid var(--red-bd);border-radius:var(--r);padding:2rem;max-width:360px;width:100%;text-align:center;}
-.rm-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--red);margin-bottom:8px;}
-.rm-desc{font-size:13px;color:var(--text2);margin-bottom:1.5rem;line-height:1.6;}
-.rm-actions{display:flex;gap:10px;justify-content:center;}
 </style>
 </head>
 <body>
@@ -421,7 +300,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <span class="bname">Attend<em>IQ</em></span>
     </div>
     <div class="hdr-r">
-      <button onclick="window.open(window.location.origin+window.location.pathname+'?lookup','_blank')" style="background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;" title="Open the student attendance lookup portal">⊞ Student Portal</button>
       <div class="teacher-pill"><span class="online-dot"></span><span id="t-name-pill">Teacher</span></div>
       <div style="font-size:11px;color:var(--text3);" id="hdr-date"></div>
     </div>
@@ -616,65 +494,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="scard"><div class="slbl">Subjects</div><div class="sval" id="as-subj">0</div></div>
         <div class="scard"><div class="slbl">Avg. Rate</div><div class="sval gn" id="as-avg">—</div></div>
       </div>
-
-      <!-- ── EDIT PANEL ── -->
-      <div class="edit-panel">
-        <div class="edit-panel-hdr" onclick="toggleEditPanel()">
-          <div class="edit-panel-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Teacher Edit Panel
-            <span class="edit-panel-badge">MANUAL OVERRIDE</span>
-          </div>
-          <svg id="ep-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="edit-panel-body" id="ep-body">
-          <p class="ep-hint">Use this panel to <strong>manually add a student</strong> who missed the QR scan, or use the action buttons on each row to <strong>change a status</strong> or <strong>remove a duplicate entry</strong>.</p>
-          <div class="ep-fg" style="margin-bottom:10px;">
-            <label>Subject (for this record)</label>
-            <select id="ep-subj">
-              <option value="">— Select subject —</option>
-            </select>
-          </div>
-          <div class="edit-panel-grid">
-            <div class="ep-fg">
-              <label>Student ID</label>
-              <input type="text" id="ep-sid" placeholder="e.g. CS/2022/001" autocapitalize="characters" autocomplete="off">
-            </div>
-            <div class="ep-fg">
-              <label>Full Name</label>
-              <input type="text" id="ep-name" placeholder="e.g. Amali Perera">
-            </div>
-            <div class="ep-fg">
-              <label>Year / Batch</label>
-              <select id="ep-year">
-                <option value="">Select year</option>
-                <option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option>
-              </select>
-            </div>
-            <div class="ep-fg">
-              <label>Status</label>
-              <select id="ep-status">
-                <option value="Present">Present</option>
-                <option value="Late">Late</option>
-              </select>
-            </div>
-            <div class="ep-fg">
-              <label>Date</label>
-              <input type="date" id="ep-date">
-            </div>
-            <div class="ep-fg">
-              <label>Time</label>
-              <input type="time" id="ep-time">
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <button class="btn btn-p btn-sm" onclick="addManualRecord()">+ Add Student Record</button>
-            <button class="btn btn-g btn-sm" onclick="clearEpForm()">Clear</button>
-            <span style="font-size:11px;color:var(--text3);">Saved directly to Firebase — visible to all teachers instantly.</span>
-          </div>
-        </div>
-      </div>
-
       <div class="card">
         <div class="filt">
           <select id="f-subj" onchange="renderLog()"><option value="">All Subjects</option></select>
@@ -683,12 +502,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <button class="btn btn-g btn-sm" onclick="clearFilt()">Clear</button>
           <button class="btn btn-p btn-sm" onclick="exportAll()" style="margin-left:auto;">Export CSV</button>
         </div>
-        <div style="overflow-x:auto;">
-          <table class="tbl">
-            <thead><tr><th>Subject</th><th>Teacher</th><th>Student ID</th><th>Name</th><th>Year</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="log-body"><tr><td colspan="9" class="tbl-empty">Loading records…</td></tr></tbody>
-          </table>
-        </div>
+        <table class="tbl">
+          <thead><tr><th>Subject</th><th>Teacher</th><th>Student ID</th><th>Name</th><th>Year</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+          <tbody id="log-body"><tr><td colspan="8" class="tbl-empty">Loading records…</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -756,103 +573,67 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="fs-timer">QR refreshes in <b id="fs-timer-sec">120</b>s</div>
   <div class="fs-code-box">Code (changes every 2 min): <span id="fs-short-code">—</span></div>
   <div class="fs-url">Can't scan? Go to: <span id="fs-url-short">—</span> and enter the code above</div>
-  <div class="fs-hint">Open phone camera → point at QR → tap the link that appears</div>
+  <div class="fs-hint">Open camera → scan QR → tap link &nbsp;|&nbsp; Can't scan? Go to the URL above and type the code</div>
 </div>
 
-<!-- ══ STUDENT LOOKUP VIEW ══ -->
-<div class="lv" id="lv">
-  <!-- Header -->
-  <div class="lv-hdr">
-    <div class="brand">
-      <div class="bico"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></div>
-      <span class="bname">Attend<em>IQ</em></span>
-    </div>
-    <div class="lv-hdr-r">
-      <span style="font-size:11px;color:var(--text3);">Student Portal</span>
-    </div>
-  </div>
-
-  <!-- Hero + Search -->
-  <div class="lv-hero">
-    <div class="lv-hero-inner">
-      <div class="lv-hero-title">My Attendance Record</div>
-      <div class="lv-hero-sub">Enter your Student ID to view your attendance across all subjects — sessions attended, missed, and your percentage per subject.</div>
-      <div class="lv-search">
-        <input class="lv-input" type="text" id="lv-sid-input" placeholder="e.g. CS/2022/001" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')lookupStudent()">
-        <button class="lv-btn" id="lv-lookup-btn" onclick="lookupStudent()">Look Up →</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main content area -->
-  <div class="lv-main">
-
-    <!-- Idle state -->
-    <div id="lv-idle" class="lv-idle">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <p>Enter your Student ID above to see your full attendance history and per-subject breakdown.</p>
+<!-- ══ MANUAL ENTRY VIEW ══ -->
+<div class="sv" id="manual-entry-view" style="display:none;">
+  <div class="s-card">
+    <div class="s-brand">
+      <div class="s-bico"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></div>
+      <span class="s-bname">Attend<em>IQ</em></span>
     </div>
 
-    <!-- Loading state -->
-    <div id="lv-loading" class="lv-loading" style="display:none;">
-      <div class="spin" style="margin:0 auto 12px;"></div>
-      <p style="font-size:13px;color:var(--text2);">Looking up records…</p>
-    </div>
-
-    <!-- Not found state -->
-    <div id="lv-not-found" class="lv-not-found" style="display:none;">
-      <div class="lv-nf-ico">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="var(--red)"/></svg>
-      </div>
-      <div class="lv-nf-title">No Records Found</div>
-      <div class="lv-nf-desc" id="lv-nf-msg">No attendance records were found for this Student ID.<br>Double-check the ID and try again.</div>
-    </div>
-
-    <!-- Results state -->
-    <div id="lv-results" style="display:none;">
-
-      <!-- Student identity banner -->
-      <div class="lv-id-banner">
-        <div class="lv-id-left">
-          <div class="lv-avatar" id="lv-avatar">?</div>
-          <div>
-            <div class="lv-student-name" id="lv-student-name">—</div>
-            <div class="lv-student-id" id="lv-student-id-display">—</div>
-          </div>
+    <div id="me-entry">
+      <div style="text-align:center;margin-bottom:1.5rem;">
+        <div style="width:56px;height:56px;background:var(--accent-bg);border:2px solid var(--accent-bd);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <button class="lv-clear-btn" onclick="clearLookup()">✕ Clear</button>
-      </div>
-
-      <!-- Overview stats -->
-      <div class="lv-overview">
-        <div class="lv-stat">
-          <div class="lv-stat-val" id="lv-ov-subjects">—</div>
-          <div class="lv-stat-lbl">Subjects</div>
-        </div>
-        <div class="lv-stat">
-          <div class="lv-stat-val gn" id="lv-ov-attended">—</div>
-          <div class="lv-stat-lbl">Sessions Attended</div>
-        </div>
-        <div class="lv-stat">
-          <div class="lv-stat-val rd" id="lv-ov-missed">—</div>
-          <div class="lv-stat-lbl">Sessions Missed</div>
-        </div>
-        <div class="lv-stat">
-          <div class="lv-stat-val am" id="lv-ov-pct">—</div>
-          <div class="lv-stat-lbl">Overall Attendance</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:6px;">Enter Session Code</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;">
+          Ask your lecturer for the <strong style="color:var(--text);">6-character code</strong> shown on the projector screen. The code changes every 2 minutes.
         </div>
       </div>
 
-      <!-- Per-subject cards -->
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:10px;">Subjects Breakdown</div>
-      <div class="lv-subj-list" id="lv-subj-list"></div>
+      <div class="s-fg">
+        <label>Session Code</label>
+        <input type="text" id="me-code-input"
+          placeholder="e.g. X7K2P9"
+          maxlength="8"
+          autocomplete="off"
+          autocapitalize="characters"
+          onkeydown="if(event.key==='Enter') findSessionByCode()"
+          style="text-align:center;font-size:26px;font-family:monospace;letter-spacing:6px;text-transform:uppercase;font-weight:700;">
+      </div>
 
+      <button onclick="findSessionByCode()"
+        style="width:100%;padding:13px;background:var(--accent);color:#0c0f1a;border:none;
+        border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;
+        cursor:pointer;margin-top:6px;transition:background 0.12s;"
+        id="me-find-btn">
+        Find My Class →
+      </button>
+
+      <div id="me-error" style="display:none;margin-top:12px;background:var(--red-bg);
+        border:1px solid var(--red-bd);border-radius:var(--rs);padding:10px 14px;
+        font-size:13px;color:var(--red);text-align:center;"></div>
+
+      <p class="s-note" style="margin-top:14px;">
+        The code is displayed by your lecturer on the projector.<br>
+        It changes every 2 minutes — enter the current code shown.
+      </p>
+    </div>
+
+    <!-- Loading spinner while searching -->
+    <div id="me-loading" style="display:none;text-align:center;padding:2rem 0;">
+      <div class="spin"></div>
+      <p style="font-size:13px;color:var(--text2);margin-top:10px;">Finding your session…</p>
     </div>
 
   </div>
 </div>
 
-<!-- ══ STUDENT VIEW (QR scan) ══ -->
+<!-- ══ STUDENT VIEW ══ -->
 <div class="sv" id="sv">
   <div class="s-card">
     <div class="s-brand">
@@ -915,18 +696,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<!-- ══ REMOVE CONFIRM MODAL ══ -->
-<div class="rm-confirm" id="rm-confirm">
-  <div class="rm-box">
-    <div class="rm-title">Remove Record?</div>
-    <div class="rm-desc" id="rm-desc">This attendance record will be permanently deleted from Firebase.<br>This cannot be undone.</div>
-    <div class="rm-actions">
-      <button class="btn btn-d" onclick="confirmRemove()">Yes, Remove</button>
-      <button class="btn btn-g" onclick="cancelRemove()">Cancel</button>
-    </div>
-  </div>
-</div>
-
 <div id="notif" class="notif" style="display:none;"></div>
 
 <script>
@@ -949,7 +718,7 @@ var db; // assigned after Firebase loads
 // ══════════════════════════════════════════
 const urlP = new URLSearchParams(window.location.search);
 const isStudent = urlP.has('t') && urlP.has('s');
-const isLookup  = urlP.has('lookup');
+const isManual  = urlP.get('manual') === '1';
 
 function loadApp() {
   if (typeof firebase === 'undefined') {
@@ -968,32 +737,28 @@ function loadApp() {
   // Enable offline persistence — queues writes when WiFi drops, syncs on reconnect
   db.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
     if (err.code === 'failed-precondition') {
+      // Multiple tabs open — persistence only works in one tab at a time
       console.warn('Offline persistence disabled: multiple tabs open');
     } else if (err.code === 'unimplemented') {
+      // Browser doesn't support it (e.g. very old Safari)
       console.warn('Offline persistence not supported in this browser');
     }
   });
 
-  // Student lookup portal
-  if (isLookup) {
-    document.getElementById('fb-loading').classList.add('hidden');
-    document.getElementById('lv').classList.add('on');
-    document.title = 'My Attendance — AttendIQ';
-    // Pre-fill from URL if provided
-    const preId = urlP.get('id');
-    if (preId) {
-      document.getElementById('lv-sid-input').value = preId;
-      lookupStudent();
-    }
-    return;
-  }
-
-  // Student view — skip DB test, go straight in
+  // Student view via QR scan
   if (isStudent) {
     document.getElementById('fb-loading').classList.add('hidden');
     document.getElementById('sv').classList.add('on');
     document.title = 'Mark Attendance — AttendIQ';
     initStudent();
+    return;
+  }
+
+  // Manual entry view — student types session code
+  if (isManual) {
+    document.getElementById('fb-loading').classList.add('hidden');
+    document.getElementById('manual-entry-view').classList.add('on');
+    document.title = 'Enter Session Code — AttendIQ';
     return;
   }
 
@@ -1056,7 +821,6 @@ function showTeacherDashboard() {
   preloadSubjectsIfEmpty();
   listenAllSessions();
   listenAllScans();
-  initEpDefaults();
 }
 
 // ══════════════════════════════════════════
@@ -1200,14 +964,12 @@ function forcePreloadSubjects() {
 // ══════════════════════════════════════════
 //  SUBJECTS — Firebase
 // ══════════════════════════════════════════
-var allSubjectsList = [];
 function loadSubjects() {
   if (unsubSubjects) unsubSubjects();
   unsubSubjects = db.collection('subjects').onSnapshot(function(snap) {
     subjects = snap.docs
       .map(function(d) { return {id:d.id,...d.data()}; })
       .sort(function(a,b) { return (a.code||'').localeCompare(b.code||''); });
-    allSubjectsList = subjects; // keep global reference for edit panel
     renderSubjectList();
     renderPicker();
     document.getElementById('s-count').textContent = subjects.length;
@@ -1762,7 +1524,7 @@ function renderLog() {
   if (tf) rows = rows.filter(r=>r.teacherName===tf);
   if (df) rows = rows.filter(r=>r.date===df);
   const tbody = document.getElementById('log-body');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="tbl-empty">No records found.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="tbl-empty">No records found.</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td><span class="sbadge" style="font-size:10px;">${r.subjectCode}</span></td>
@@ -1772,16 +1534,7 @@ function renderLog() {
       <td style="color:var(--text2);">${r.year}</td>
       <td style="color:var(--text2);">${r.date}</td>
       <td style="color:var(--text2);">${r.time}</td>
-      <td>
-        <select class="status-sel" onchange="changeStatus('${r.id}', this.value, this)" title="Change attendance status">
-          <option value="Present" ${r.status==='Present'?'selected':''}>✓ Present</option>
-          <option value="Late" ${r.status==='Late'?'selected':''}>⏱ Late</option>
-          <option value="Absent" ${r.status==='Absent'?'selected':''}>✕ Absent</option>
-        </select>
-      </td>
-      <td class="act-cell">
-        <button class="act-btn act-del" onclick="promptRemove('${r.id}','${(r.studentName||'').replace(/'/g,"\\'")}','${r.studentId}')">✕ Remove</button>
-      </td>
+      <td><span class="${r.status==='Present'?'bp':'bl'}">${r.status}</span></td>
     </tr>`).join('');
 }
 
@@ -2041,47 +1794,119 @@ function showSvErr(title, msg) {
 }
 
 function tryManualCode() {
-  var code = (document.getElementById('manual-code-input').value || '').trim().toUpperCase();
-  if (code.length < 4) { alert('Please enter the session code shown by your lecturer.'); return; }
+  // Legacy function — now calls findSessionByCode
+  findSessionByCode();
+}
 
-  document.getElementById('sv-err').style.display = 'none';
-  document.getElementById('sv-loading').style.display = '';
+function findSessionByCode() {
+  var inputEl = document.getElementById('me-code-input') ||
+                document.getElementById('manual-code-input');
+  var code = (inputEl ? inputEl.value : '').trim().toUpperCase();
 
-  // Search Firestore for an active session with this token (rotates every 2 min)
+  if (code.length < 4) {
+    showMeError('Please enter the session code shown on the projector.');
+    return;
+  }
+
+  // Show loading
+  var entryEl   = document.getElementById('me-entry');
+  var loadingEl = document.getElementById('me-loading');
+  var errEl     = document.getElementById('me-error');
+  var btn       = document.getElementById('me-find-btn');
+
+  if (entryEl)   { entryEl.style.display = 'none'; }
+  if (loadingEl) { loadingEl.style.display = ''; }
+  if (errEl)     { errEl.style.display = 'none'; }
+  if (btn)       { btn.disabled = true; }
+
+  // Search Firestore for active session matching this token
   db.collection('sessions')
     .where('active', '==', true)
     .where('token', '==', code)
     .get()
     .then(function(snap) {
-      document.getElementById('sv-loading').style.display = 'none';
+      if (loadingEl) loadingEl.style.display = 'none';
+
       if (snap.empty) {
-        document.getElementById('sv-err').style.display = '';
-        document.getElementById('sv-err-title').textContent = 'Code Not Found or Expired';
-        document.getElementById('sv-err-msg').textContent = 'No active session found for code "' + code + '". The code changes every 2 minutes — check the latest code shown by your lecturer and try again.';
+        // Code not found — show error and let them try again
+        if (entryEl) entryEl.style.display = '';
+        if (btn)     btn.disabled = false;
+        showMeError('Code "' + code + '" not found or expired. The code changes every 2 minutes — check the latest code on the projector and try again.');
         return;
       }
-      var doc = snap.docs[0];
+
+      var doc     = snap.docs[0];
       var session = doc.data();
-      // Build fake URL params from session data and re-init student
-      var fakeParams = new URLSearchParams({
-        s:   session.subjectCode,
-        sn:  session.subjectName,
-        t:   session.token,
-        sid: doc.id,
-        l:   session.teacherName || '',
-        ss:  session.startMs || Date.now(),
-        tn:  session.teacherName || ''
-      });
-      // Replace urlP and re-run student init
-      window._manualSession = { params: fakeParams, sessionId: doc.id, session: session };
-      initStudentFromManual(fakeParams, doc.id, session);
+
+      // Switch to student view and load the form
+      document.getElementById('manual-entry-view').classList.remove('on');
+      document.getElementById('sv').classList.add('on');
+      document.title = 'Mark Attendance — AttendIQ';
+
+      // Inject params and init student form
+      window._sp = {
+        subject:     session.subjectCode || '',
+        subjectName: session.subjectName || '',
+        token:       session.token,
+        sessionId:   doc.id,
+        lec:         session.teacherName || '',
+        ss:          session.startMs || Date.now(),
+        teacher:     session.teacherName || '',
+        graceMins:   session.graceMins || 15
+      };
+
+      document.getElementById('sv-loading').style.display = 'none';
+      document.getElementById('sv-code').textContent  = session.subjectCode || '—';
+      document.getElementById('sv-sname').textContent = session.subjectName || '—';
+      document.getElementById('sv-meta').textContent  = session.teacherName
+        ? 'Lecturer: ' + session.teacherName : 'Mark your attendance';
+      document.getElementById('sv-timer').textContent = 'Active';
+      document.getElementById('sv-form').style.display = '';
+
+      // Grace period display
+      if (session.startMs) {
+        var minsElapsed = Math.round((Date.now() - session.startMs) / 60000);
+        var graceLeft   = (session.graceMins || 15) - minsElapsed;
+        var graceEl     = document.getElementById('sv-grace-label');
+        if (graceEl) {
+          if (graceLeft > 0) {
+            graceEl.textContent = graceLeft + ' min left';
+            graceEl.style.color = 'var(--green)';
+          } else {
+            graceEl.textContent = 'Late submission';
+            graceEl.style.color = 'var(--red)';
+          }
+        }
+      }
+
+      // Poll to detect session end or token rotation
+      window._stiv = setInterval(function() {
+        db.collection('sessions').doc(doc.id).get().then(function(d) {
+          if (!d.exists || !d.data().active) {
+            clearInterval(window._stiv);
+            document.getElementById('sv-form').style.display = 'none';
+            document.getElementById('sv-err').style.display  = '';
+            document.getElementById('sv-err-title').textContent = 'Session Ended';
+            document.getElementById('sv-err-msg').textContent   = 'This session has ended. Contact your lecturer.';
+          } else if (d.data().token !== window._sp.token) {
+            // Token rotated — update silently
+            window._sp.token = d.data().token;
+          }
+        }).catch(function() {});
+      }, 15000);
     })
     .catch(function(err) {
-      document.getElementById('sv-loading').style.display = 'none';
-      document.getElementById('sv-err').style.display = '';
-      document.getElementById('sv-err-title').textContent = 'Connection Error';
-      document.getElementById('sv-err-msg').textContent = 'Could not connect. Check your internet and try again.';
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (entryEl)   entryEl.style.display = '';
+      if (btn)       btn.disabled = false;
+      showMeError('Connection error. Check your internet and try again.');
+      console.error('findSessionByCode error:', err);
     });
+}
+
+function showMeError(msg) {
+  var errEl = document.getElementById('me-error');
+  if (errEl) { errEl.textContent = msg; errEl.style.display = ''; }
 }
 
 function initStudentFromManual(params, sessionId, session) {
@@ -2126,8 +1951,8 @@ function openFullscreen() {
   document.getElementById('fs-subject').textContent =
     activeSession.subjectCode + ' — ' + activeSession.subjectName;
   var base = window.location.origin + window.location.pathname;
-  document.getElementById('fs-url-short').textContent =
-    base.replace('https://','').replace('http://','');
+  var shortUrl = base.replace('https://','').replace('http://','');
+  document.getElementById('fs-url-short').textContent = shortUrl + '?manual=1';
   document.getElementById('fs-short-code').textContent =
     activeSession.token || '—';
 
@@ -2373,410 +2198,6 @@ function exportSummary() {
 
   const headers = [['Subject','Student ID','Name','Year','Total Sessions','Attended','Absent','Attendance %','Status','Absent Dates']];
   dlCSV([...headers, ...rows], 'student_summary_' + new Date().toLocaleDateString('en-CA') + '.csv');
-}
-
-// ══════════════════════════════════════════
-//  STUDENT LOOKUP PORTAL
-// ══════════════════════════════════════════
-
-function lookupStudent() {
-  const raw = (document.getElementById('lv-sid-input').value || '').trim();
-  if (!raw) { document.getElementById('lv-sid-input').focus(); return; }
-  const sid = raw.toUpperCase();
-
-  // UI → loading state
-  lvSetState('loading');
-  document.getElementById('lv-lookup-btn').disabled = true;
-
-  // Query all attendance docs for this student ID
-  db.collection('attendance')
-    .where('studentId', '==', sid)
-    .get()
-    .then(function(snap) {
-      document.getElementById('lv-lookup-btn').disabled = false;
-      if (snap.empty) {
-        // Also try case-insensitive fallback by fetching all — too expensive;
-        // instead just show not-found with helpful message
-        lvSetState('not-found');
-        document.getElementById('lv-nf-msg').innerHTML =
-          'No records found for <strong style="color:var(--text);">' + sid + '</strong>.<br>' +
-          'Double-check the ID format (e.g. CS/2022/001) and try again.';
-        return;
-      }
-
-      const records = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
-      renderLookupResults(sid, records);
-    })
-    .catch(function(err) {
-      document.getElementById('lv-lookup-btn').disabled = false;
-      lvSetState('not-found');
-      document.getElementById('lv-nf-msg').innerHTML =
-        'Could not connect to the database. Check your internet connection and try again.';
-      console.error('Lookup error:', err);
-    });
-}
-
-function lvSetState(state) {
-  ['lv-idle','lv-loading','lv-not-found','lv-results'].forEach(function(id) {
-    document.getElementById(id).style.display = 'none';
-  });
-  var map = { idle:'lv-idle', loading:'lv-loading', 'not-found':'lv-not-found', results:'lv-results' };
-  if (map[state]) document.getElementById(map[state]).style.display = '';
-}
-
-function clearLookup() {
-  document.getElementById('lv-sid-input').value = '';
-  lvSetState('idle');
-  document.getElementById('lv-sid-input').focus();
-}
-
-function renderLookupResults(sid, records) {
-  // Student name — take the most recent record's name
-  const sortedRec = [...records].sort(function(a,b) {
-    return ((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||''));
-  });
-  const studentName = sortedRec[0].studentName || sid;
-  const initials = studentName.split(' ').map(function(w){ return w[0]||''; }).slice(0,2).join('').toUpperCase() || sid[0];
-
-  // Identity banner
-  document.getElementById('lv-avatar').textContent = initials;
-  document.getElementById('lv-student-name').textContent = studentName;
-  document.getElementById('lv-student-id-display').textContent = sid;
-
-  // Group by subject
-  // For each subject, we need: all sessions that ran for that subject (from all records),
-  // and which ones this student attended.
-  // We figure out total sessions per subject by looking at all unique sessionIds in records
-  // for that subject that the student was part of, PLUS we need to know if there were
-  // sessions they weren't even scanned in — those won't appear in this student's records.
-  // Strategy: group records by subjectCode, get unique sessionIds per subject
-  // We can't know about sessions the student never appeared in without a separate query.
-  // So we'll query all attendance for each unique subjectCode to discover all sessions.
-
-  const subjectCodes = [...new Set(records.map(function(r){ return r.subjectCode; }))];
-
-  // Build per-subject map from student's own records
-  var bySubject = {};
-  records.forEach(function(r) {
-    if (!bySubject[r.subjectCode]) {
-      bySubject[r.subjectCode] = {
-        code: r.subjectCode,
-        name: r.subjectName || r.subjectCode,
-        teacher: r.teacherName || '—',
-        studentSessions: {} // sessionId → record
-      };
-    }
-    bySubject[r.subjectCode].studentSessions[r.sessionId] = r;
-  });
-
-  // Now fetch all session IDs for each subject (to detect absences)
-  // We do this by querying all attendance records for each subject
-  var promises = subjectCodes.map(function(code) {
-    return db.collection('attendance')
-      .where('subjectCode', '==', code)
-      .get()
-      .then(function(snap) {
-        // Collect all unique sessions for this subject
-        var allSessions = {}; // sessionId → { date, time }
-        snap.docs.forEach(function(d) {
-          var r = d.data();
-          if (!allSessions[r.sessionId]) {
-            allSessions[r.sessionId] = { date: r.date || '—', time: r.time || '—', teacherName: r.teacherName || '—' };
-          }
-        });
-        bySubject[code].allSessions = allSessions;
-      });
-  });
-
-  Promise.all(promises).then(function() {
-    // Build final subject summaries
-    var subjSummaries = subjectCodes.map(function(code) {
-      var s = bySubject[code];
-      var allSessIds = Object.keys(s.allSessions || {});
-      var totalSessions = allSessIds.length;
-      var attended = 0, late = 0, absent = 0;
-
-      var sessionRows = allSessIds.sort(function(a,b){
-        var da = (s.allSessions[a].date||'');
-        var db2 = (s.allSessions[b].date||'');
-        return da.localeCompare(db2);
-      }).map(function(sessId, idx) {
-        var sessInfo = s.allSessions[sessId];
-        var studentRec = s.studentSessions[sessId];
-        var status, statusClass;
-        if (studentRec) {
-          status = studentRec.status || 'Present';
-          if (status === 'Present') { attended++; statusClass = 'ls-present'; }
-          else if (status === 'Late') { attended++; late++; statusClass = 'ls-late'; }
-          else { absent++; statusClass = 'ls-absent'; }
-        } else {
-          status = 'Absent';
-          absent++;
-          statusClass = 'ls-absent';
-        }
-        return { sessId, date: sessInfo.date, time: sessInfo.time, status, statusClass, num: idx+1 };
-      });
-
-      var pct = totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
-      var grade = pct >= 75 ? 'good' : pct >= 50 ? 'warn' : 'danger';
-      return { code, name: s.name, teacher: s.teacher, totalSessions, attended, late, absent, pct, grade, sessionRows };
-    });
-
-    // Sort: danger first, then warn, then good; within each by subject code
-    subjSummaries.sort(function(a,b){ 
-      var gOrder = {danger:0, warn:1, good:2};
-      return (gOrder[a.grade] - gOrder[b.grade]) || a.code.localeCompare(b.code);
-    });
-
-    // Overall stats
-    var totalSess = subjSummaries.reduce(function(s,x){ return s + x.totalSessions; }, 0);
-    var totalAtt  = subjSummaries.reduce(function(s,x){ return s + x.attended; }, 0);
-    var totalAbs  = subjSummaries.reduce(function(s,x){ return s + x.absent; }, 0);
-    var overallPct = totalSess > 0 ? Math.round((totalAtt/totalSess)*100) : 0;
-
-    document.getElementById('lv-ov-subjects').textContent  = subjSummaries.length;
-    document.getElementById('lv-ov-attended').textContent  = totalAtt;
-    document.getElementById('lv-ov-missed').textContent    = totalAbs;
-    var pctEl = document.getElementById('lv-ov-pct');
-    pctEl.textContent = overallPct + '%';
-    pctEl.className = 'lv-stat-val ' + (overallPct >= 75 ? 'gn' : overallPct >= 50 ? 'am' : 'rd');
-
-    // Render subject cards
-    var list = document.getElementById('lv-subj-list');
-    list.innerHTML = subjSummaries.map(function(s, i) {
-      var barColor = s.grade === 'good' ? 'var(--green)' : s.grade === 'warn' ? 'var(--accent)' : 'var(--red)';
-      var pctNumColor = s.grade === 'good' ? 'var(--green)' : s.grade === 'warn' ? 'var(--accent)' : 'var(--red)';
-      var statClass = s.grade === 'good' ? 'gn' : s.grade === 'warn' ? 'am' : 'rd';
-      var circumference = 2 * Math.PI * 18; // r=18
-      var dashOffset = circumference - (s.pct / 100) * circumference;
-      var bgStroke = 'rgba(255,255,255,0.07)';
-
-      var sessionRowsHtml = s.sessionRows.map(function(row) {
-        var dotColor = row.status === 'Present' ? 'var(--green)' : row.status === 'Late' ? 'var(--accent)' : 'var(--red)';
-        return '<tr>' +
-          '<td style="color:var(--text3);">#' + row.num + '</td>' +
-          '<td style="color:var(--text2);">' + row.date + '</td>' +
-          '<td style="color:var(--text2);">' + row.time + '</td>' +
-          '<td><span class="' + row.statusClass + '" style="display:flex;align-items:center;gap:5px;">' +
-            '<span style="width:6px;height:6px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;display:inline-block;"></span>' +
-            row.status + '</span></td>' +
-          '</tr>';
-      }).join('');
-
-      return '<div class="lv-subj-card ' + s.grade + '">' +
-        '<div class="lv-sc-hdr" onclick="lvToggleSubj(this)">' +
-          '<div class="lv-sc-left">' +
-            '<span class="lv-sc-code">' + s.code + '</span>' +
-            '<div>' +
-              '<div class="lv-sc-name">' + s.name + '</div>' +
-              '<div class="lv-sc-dept">' + (s.teacher !== '—' ? 'Lecturer: ' + s.teacher : '') + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="lv-sc-right">' +
-            '<div class="lv-pct-ring">' +
-              '<svg width="46" height="46" viewBox="0 0 46 46">' +
-                '<circle cx="23" cy="23" r="18" fill="none" stroke="' + bgStroke + '" stroke-width="4"/>' +
-                '<circle cx="23" cy="23" r="18" fill="none" stroke="' + barColor + '" stroke-width="4" stroke-linecap="round"' +
-                  ' stroke-dasharray="' + circumference.toFixed(1) + '"' +
-                  ' stroke-dashoffset="' + dashOffset.toFixed(1) + '"' +
-                  ' style="transform:rotate(-90deg);transform-origin:center;"/>' +
-              '</svg>' +
-              '<div class="lv-pct-num" style="color:' + pctNumColor + ';">' + s.pct + '%</div>' +
-            '</div>' +
-            '<div class="lv-sc-stats">' +
-              '<div class="lv-sc-stat-main ' + statClass + '">' + s.attended + '<span style="font-size:12px;font-family:\'DM Sans\',sans-serif;color:var(--text2);font-weight:400;">/' + s.totalSessions + '</span></div>' +
-              '<div class="lv-sc-stat-sub">sessions attended</div>' +
-            '</div>' +
-            '<svg class="lv-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>' +
-          '</div>' +
-        '</div>' +
-        '<div class="lv-sc-body">' +
-          '<div style="display:flex;gap:16px;padding:12px 0 8px;flex-wrap:wrap;">' +
-            '<span style="font-size:11px;"><span style="color:var(--green);font-weight:700;">' + (s.attended - s.late) + '</span> <span style="color:var(--text2);">present</span></span>' +
-            '<span style="font-size:11px;"><span style="color:var(--accent);font-weight:700;">' + s.late + '</span> <span style="color:var(--text2);">late</span></span>' +
-            '<span style="font-size:11px;"><span style="color:var(--red);font-weight:700;">' + s.absent + '</span> <span style="color:var(--text2);">absent</span></span>' +
-            '<span style="font-size:11px;margin-left:auto;"><span style="color:' + barColor + ';font-weight:700;">' + s.pct + '%</span> <span style="color:var(--text2);">attendance</span></span>' +
-          '</div>' +
-          '<div class="lv-bar-wrap"><div class="lv-bar" style="width:' + s.pct + '%;background:' + barColor + ';"></div></div>' +
-          '<div style="overflow-x:auto;">' +
-            '<table class="lv-session-tbl">' +
-              '<thead><tr><th>#</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>' +
-              '<tbody>' + sessionRowsHtml + '</tbody>' +
-            '</table>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-
-    lvSetState('results');
-  }).catch(function(err) {
-    document.getElementById('lv-lookup-btn').disabled = false;
-    lvSetState('not-found');
-    document.getElementById('lv-nf-msg').textContent = 'Error loading full attendance data. Please try again.';
-    console.error('Session fetch error:', err);
-  });
-}
-
-function lvToggleSubj(hdr) {
-  var body = hdr.nextElementSibling;
-  var chev = hdr.querySelector('.lv-chevron');
-  var open = body.classList.toggle('open');
-  if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
-}
-
-// ══════════════════════════════════════════
-//  EDIT PANEL — Manual Add / Status Change / Remove
-// ══════════════════════════════════════════
-
-function toggleEditPanel() {
-  const body = document.getElementById('ep-body');
-  const chev = document.getElementById('ep-chevron');
-  const open = body.classList.toggle('open');
-  chev.style.transform = open ? 'rotate(180deg)' : '';
-  if (open) populateEpSubjectList();
-}
-
-function populateEpSubjectList() {
-  const sel = document.getElementById('ep-subj');
-  const cur = sel.value;
-  // Gather unique subjects from allScans, plus from allSubjects list
-  const codes = new Set();
-  allScans.forEach(s => codes.add(s.subjectCode + '||' + (s.subjectCode || '')));
-  if (typeof allSubjectsList !== 'undefined') {
-    allSubjectsList.forEach(s => codes.add(s.code + '||' + s.name));
-  }
-  sel.innerHTML = '<option value="">— Select subject —</option>';
-  [...codes].sort().forEach(entry => {
-    const [code, name] = entry.split('||');
-    const label = name && name !== code ? code + ' — ' + name : code;
-    const opt = document.createElement('option');
-    opt.value = code;
-    opt.dataset.name = name || code;
-    opt.textContent = label;
-    if (code === cur) opt.selected = true;
-    sel.appendChild(opt);
-  });
-}
-
-function clearEpForm() {
-  document.getElementById('ep-sid').value    = '';
-  document.getElementById('ep-name').value   = '';
-  document.getElementById('ep-year').value   = '';
-  document.getElementById('ep-status').value = 'Present';
-  document.getElementById('ep-date').value   = new Date().toLocaleDateString('en-CA');
-  document.getElementById('ep-time').value   = new Date().toTimeString().slice(0,5);
-}
-
-function addManualRecord() {
-  const subjEl  = document.getElementById('ep-subj');
-  const subCode = subjEl.value;
-  const subName = subjEl.selectedOptions[0]?.dataset.name || subCode;
-  const sid     = document.getElementById('ep-sid').value.trim();
-  const name    = document.getElementById('ep-name').value.trim();
-  const year    = document.getElementById('ep-year').value;
-  const status  = document.getElementById('ep-status').value;
-  const date    = document.getElementById('ep-date').value || new Date().toLocaleDateString('en-CA');
-  const time    = document.getElementById('ep-time').value || new Date().toTimeString().slice(0,8);
-
-  if (!subCode)  { notify('Please select a subject', 'err'); return; }
-  if (!sid)      { notify('Please enter a Student ID', 'err'); return; }
-  if (!name)     { notify('Please enter student name', 'err'); return; }
-  if (!year)     { notify('Please select a year', 'err'); return; }
-
-  // Find matching session ID for this subject+date if one exists
-  const matchScan = allScans.find(s => s.subjectCode === subCode && s.date === date);
-  const sessionId = matchScan ? matchScan.sessionId : ('manual_' + Date.now());
-
-  const record = {
-    sessionId:   sessionId,
-    subjectCode: subCode,
-    subjectName: subName,
-    teacherName: currentTeacher ? currentTeacher.name : 'Manual Entry',
-    studentId:   sid.toUpperCase(),
-    studentName: name,
-    year:        year,
-    date:        date,
-    time:        time.length === 5 ? time + ':00' : time,
-    status:      status,
-    addedBy:     currentTeacher ? currentTeacher.name : 'Manual Entry',
-    manualEntry: true,
-    createdAt:   firebase.firestore.FieldValue.serverTimestamp()
-  };
-
-  db.collection('attendance').add(record)
-    .then(() => {
-      notify('✓ ' + sid.toUpperCase() + ' added as ' + status);
-      clearEpForm();
-    })
-    .catch(err => {
-      notify('Failed to add record — ' + (err.message || 'check console'), 'err');
-      console.error('Manual add error:', err);
-    });
-}
-
-// ── Status Change ────────────────────────────────────────────────────
-function changeStatus(docId, newStatus, selectEl) {
-  if (!docId) return;
-  const prev = allScans.find(s => s.id === docId);
-  const prevStatus = prev ? prev.status : '?';
-  if (newStatus === prevStatus) return; // no-op
-
-  db.collection('attendance').doc(docId).update({ status: newStatus })
-    .then(() => {
-      notify('Status updated → ' + newStatus);
-      // Update colour cue on the select
-      if (selectEl) {
-        selectEl.style.color = newStatus === 'Present' ? 'var(--green)' :
-                               newStatus === 'Late'    ? 'var(--accent)' : 'var(--red)';
-      }
-    })
-    .catch(err => {
-      notify('Failed to update status', 'err');
-      // Revert select
-      if (selectEl && prev) selectEl.value = prevStatus;
-      console.error('Status update error:', err);
-    });
-}
-
-// ── Remove Record ────────────────────────────────────────────────────
-var _pendingRemoveId = null;
-
-function promptRemove(docId, studentName, studentId) {
-  _pendingRemoveId = docId;
-  document.getElementById('rm-desc').innerHTML =
-    'You are about to delete the attendance record for:<br>' +
-    '<strong style="color:var(--text);">' + studentName + '</strong>' +
-    ' <span style="color:var(--accent);font-family:monospace;font-size:11px;">(' + studentId + ')</span><br><br>' +
-    'This cannot be undone.';
-  document.getElementById('rm-confirm').classList.add('on');
-}
-
-function confirmRemove() {
-  if (!_pendingRemoveId) return;
-  const id = _pendingRemoveId;
-  _pendingRemoveId = null;
-  document.getElementById('rm-confirm').classList.remove('on');
-  db.collection('attendance').doc(id).delete()
-    .then(() => notify('Record removed'))
-    .catch(err => { notify('Failed to remove — ' + (err.message || ''), 'err'); console.error(err); });
-}
-
-function cancelRemove() {
-  _pendingRemoveId = null;
-  document.getElementById('rm-confirm').classList.remove('on');
-}
-
-// Close confirm modal if backdrop clicked
-document.addEventListener('click', function(e) {
-  const modal = document.getElementById('rm-confirm');
-  if (e.target === modal) cancelRemove();
-});
-
-// ── Pre-fill edit panel date/time with sensible defaults ─────────────
-function initEpDefaults() {
-  const now = new Date();
-  document.getElementById('ep-date').value = now.toLocaleDateString('en-CA');
-  document.getElementById('ep-time').value = now.toTimeString().slice(0,5);
 }
 
 // ══════════════════════════════════════════
