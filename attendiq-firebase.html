@@ -1585,35 +1585,50 @@ function startSession() {
 }
 
 function doStartSession(geoLat, geoLng, geoRadius) {
-  var geoEnabled = geoLat !== null;
+  var geoEnabled    = geoLat !== null;
+  var enrollStrictEl = document.getElementById('enroll-strict');
+  var enrollStrict  = enrollStrictEl ? enrollStrictEl.checked : false;
+  var subjectCode   = selSubject.code || '';
   const token        = mkToken();
   const graceMins    = parseInt(document.getElementById('grace-period').value)    || 15;
   const durationMins = parseInt(document.getElementById('session-duration').value) || 0;
 
-  // Sanitize all fields — Firestore rejects undefined values
-  const sessionData = {
-    teacherId:    currentTeacher.id   || '',
-    teacherName:  currentTeacher.name || '',
-    teacherDept:  currentTeacher.dept || '',
-    subjectId:    selSubject.id       || '',
-    subjectCode:  selSubject.code     || '',
-    subjectName:  selSubject.name     || '',
-    token:        token,
-    startTime:    firebase.firestore.FieldValue.serverTimestamp(),
-    lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp(),
-    startMs:      Date.now(),
-    active:       true,
-    scanCount:    0,
-    graceMins:    graceMins,
-    durationMins: durationMins,
-    geoEnabled:   geoEnabled,
-    geoLat:       geoEnabled ? geoLat    : 0,
-    geoLng:       geoEnabled ? geoLng    : 0,
-    geoRadius:    geoEnabled ? geoRadius : 0
-  };
+  // Helper that builds and writes the session doc (called after enrollment list is ready)
+  function writeSession(enrolledIds) {
+    // Normalise all IDs: uppercase + trim, so comparison is always clean
+    var normIds = (enrolledIds || []).map(function(id) {
+      return id.trim().toUpperCase();
+    });
 
-  db.collection('sessions').add(sessionData).then(function(ref) {
-    activeSession = { id: ref.id, ...sessionData, startMs: Date.now(), graceMins, durationMins, geoLat: geoLat||0, geoLng: geoLng||0, geoRadius: geoRadius||0, geoEnabled: geoEnabled };
+    const sessionData = {
+      teacherId:    currentTeacher.id   || '',
+      teacherName:  currentTeacher.name || '',
+      teacherDept:  currentTeacher.dept || '',
+      subjectId:    selSubject.id       || '',
+      subjectCode:  subjectCode,
+      subjectName:  selSubject.name     || '',
+      token:        token,
+      startTime:    firebase.firestore.FieldValue.serverTimestamp(),
+      lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp(),
+      startMs:      Date.now(),
+      active:       true,
+      scanCount:    0,
+      graceMins:    graceMins,
+      durationMins: durationMins,
+      geoEnabled:   geoEnabled,
+      geoLat:       geoEnabled ? geoLat    : 0,
+      geoLng:       geoEnabled ? geoLng    : 0,
+      geoRadius:    geoEnabled ? geoRadius : 0,
+      enrollStrict: enrollStrict && normIds.length > 0,
+      enrolledIds:  normIds   // embedded in session doc — students read this, not enrollments collection
+    };
+
+    db.collection('sessions').add(sessionData).then(function(ref) {
+      activeSession = Object.assign({}, sessionData, {
+        id: ref.id, startMs: Date.now(), graceMins, durationMins,
+        geoLat: geoLat||0, geoLng: geoLng||0, geoRadius: geoRadius||0, geoEnabled,
+        enrollStrict: sessionData.enrollStrict, enrolledIds: normIds
+      });
     setupSessionUI();
     genQR(token, ref.id);
     startTimer();
@@ -1661,6 +1676,36 @@ function doStartSession(geoLat, geoLng, geoRadius) {
       '</div>';
     document.getElementById('tv').prepend(banner);
   });
+  } // end writeSession()
+
+  // Fetch enrollment list then write session
+  if (enrollStrict) {
+    // Use cache if already loaded
+    if (enrollmentCache[subjectCode] && enrollmentCache[subjectCode].length) {
+      var ids = enrollmentCache[subjectCode].map(function(r){ return r.id; });
+      notify('Enrollment list loaded — ' + ids.length + ' students registered.');
+      writeSession(ids);
+    } else {
+      // Load from Firestore (teacher-side read — permitted)
+      db.collection('enrollments').doc(subjectCode).get().then(function(doc) {
+        if (!doc.exists || !doc.data().students || !doc.data().students.length) {
+          notify('No enrollment list found for ' + subjectCode + ' — starting open session.', 'err');
+          writeSession([]); // no list → no restriction
+        } else {
+          var list = doc.data().students;
+          enrollmentCache[subjectCode] = list;
+          var ids = list.map(function(r){ return r.id; });
+          notify('Enrollment list loaded — ' + ids.length + ' students registered.');
+          writeSession(ids);
+        }
+      }).catch(function() {
+        notify('Could not load enrollment list — starting open session.');
+        writeSession([]);
+      });
+    }
+  } else {
+    writeSession([]); // enrollment check disabled
+  }
 }
 
 // ── HEARTBEAT: keeps session alive; stops on tab close ──────────────
@@ -2265,6 +2310,7 @@ function initStudent() {
     p.geoLng       = session.geoLng       || 0;
     p.geoRadius    = session.geoRadius    || 100;
     p.enrollStrict = session.enrollStrict || false;
+    p.enrolledIds  = session.enrolledIds  || [];
     window._sp = p;
     // Show initial grace period status
     if (p.ss) {
@@ -2568,6 +2614,7 @@ function initStudentFromManual(params, sessionId, session) {
   p.geoLng       = session.geoLng       || 0;
   p.geoRadius    = session.geoRadius    || 100;
   p.enrollStrict = session.enrollStrict || false;
+  p.enrolledIds  = session.enrolledIds  || [];
   window._sp = p;
   document.getElementById('sv-code').textContent  = p.subject;
   document.getElementById('sv-sname').textContent = p.subjectName || p.subject;
@@ -3420,33 +3467,24 @@ function deleteEnrollment(code) {
 // Returns a Promise that resolves to the student's enrollment entry (or null if not enforced).
 // Rejects with a user-visible message if the student is not enrolled.
 function checkEnrollment(subjectCode, studentId) {
-  var isStrict = window._sp && window._sp.enrollStrict;
-  if (!isStrict) return Promise.resolve(null); // strict mode off → skip
+  var sp = window._sp;
+  if (!sp || !sp.enrollStrict) return Promise.resolve(null); // strict mode off
 
-  // Try in-memory cache first (fast)
-  if (enrollmentCache[subjectCode]) {
-    var found = enrollmentCache[subjectCode].find(function(r){ return r.id === studentId; });
-    if (found) return Promise.resolve(found);
-    return Promise.reject({
-      title: 'Not Enrolled',
-      msg: 'Student ID ' + studentId + ' is not on the enrollment list for this subject. If you believe this is an error, contact your lecturer.'
-    });
-  }
+  // Enrollment list is embedded in the session doc and already in _sp.enrolledIds
+  // No Firestore read needed on the student side — works with any security rules
+  var enrolledIds = sp.enrolledIds || [];
+  if (!enrolledIds.length) return Promise.resolve(null); // no list → open
 
-  // Fetch from Firestore (only on first miss per subject per session)
-  return db.collection('enrollments').doc(subjectCode).get().then(function(doc) {
-    if (!doc.exists || !doc.data().students) {
-      // No enrollment list uploaded → allow everyone through (warn teacher in session)
-      return null;
-    }
-    var list = doc.data().students;
-    enrollmentCache[subjectCode] = list; // cache for remaining students
-    var found = list.find(function(r){ return r.id === studentId; });
-    if (found) return found;
-    return Promise.reject({
-      title: 'Not Enrolled',
-      msg: 'Student ID ' + studentId + ' is not on the enrollment list for this subject. If you believe this is an error, contact your lecturer.'
-    });
+  // Normalise the submitted ID the same way the list was normalised at session start
+  var normId = studentId.trim().toUpperCase();
+  var isEnrolled = enrolledIds.indexOf(normId) !== -1;
+
+  if (isEnrolled) return Promise.resolve({ id: normId });
+
+  return Promise.reject({
+    title: 'Not Enrolled',
+    msg: 'Student ID “' + studentId + '” is not on the enrollment list for this subject. ' +
+         'Please check your ID and try again, or contact your lecturer.'
   });
 }
 
