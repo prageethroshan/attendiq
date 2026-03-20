@@ -355,9 +355,32 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div class="card" style="margin-bottom:14px;">
             <div class="ctitle">Choose Subject</div>
             <div class="spick-grid" id="spick-grid"><div class="empty" style="padding:1.5rem;">Loading…</div></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="session-options">
+              <div>
+                <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);display:block;margin-bottom:5px;">Grace Period</label>
+                <select id="grace-period" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+                  <option value="5">5 minutes</option>
+                  <option value="10">10 minutes</option>
+                  <option value="15" selected>15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="30">30 minutes</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);display:block;margin-bottom:5px;">Auto-End Session</label>
+                <select id="session-duration" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+                  <option value="0">Never (manual)</option>
+                  <option value="60">After 1 hour</option>
+                  <option value="90">After 1.5 hours</option>
+                  <option value="120" selected>After 2 hours</option>
+                  <option value="180">After 3 hours</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
               <button class="btn btn-p" id="btn-start" onclick="startSession()">▶ Start Session</button>
               <button class="btn btn-d" id="btn-stop" onclick="stopSession()" style="display:none;">■ Stop Session</button>
+              <span id="auto-end-label" style="display:none;font-size:12px;color:var(--text2);"></span>
             </div>
           </div>
           <div class="card" id="scan-log" style="display:none;">
@@ -569,7 +592,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div class="s-status">
         <div class="dot dot-g" id="sv-dot"></div>
-        <span>Session active — <span style="color:var(--accent);font-weight:600;" id="sv-timer">—</span> remaining</span>
+        <span>Session active &nbsp;·&nbsp; On-time for <span style="color:var(--green);font-weight:600;" id="sv-grace-label">—</span> &nbsp;·&nbsp; Code valid: <span style="color:var(--accent);font-weight:600;" id="sv-timer">—</span></span>
       </div>
       <div class="s-fg"><label>Student ID / Reg. No.</label><input type="text" id="sv-id" placeholder="e.g. CS/2022/001" autocapitalize="characters" autocomplete="off"></div>
       <div class="s-fg"><label>Full Name</label><input type="text" id="sv-fname" placeholder="e.g. Amali Perera" autocomplete="name"></div>
@@ -650,6 +673,17 @@ function loadApp() {
   }
 
   db = firebase.firestore();
+
+  // Enable offline persistence — queues writes when WiFi drops, syncs on reconnect
+  db.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
+    if (err.code === 'failed-precondition') {
+      // Multiple tabs open — persistence only works in one tab at a time
+      console.warn('Offline persistence disabled: multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      // Browser doesn't support it (e.g. very old Safari)
+      console.warn('Offline persistence not supported in this browser');
+    }
+  });
 
   // Student view — skip DB test, go straight in
   if (isStudent) {
@@ -939,31 +973,45 @@ function startSession() {
   if (!selSubject) { notify('Select a subject first','err'); return; }
   if (activeSession) { notify('Already running'); return; }
 
-  const token = mkToken();
+  const token        = mkToken();
+  const graceMins    = parseInt(document.getElementById('grace-period').value)    || 15;
+  const durationMins = parseInt(document.getElementById('session-duration').value) || 0;
+
   // Sanitize all fields — Firestore rejects undefined values
   const sessionData = {
-    teacherId:   currentTeacher.id   || '',
-    teacherName: currentTeacher.name || '',
-    teacherDept: currentTeacher.dept || '',
-    subjectId:   selSubject.id       || '',
-    subjectCode: selSubject.code     || '',
-    subjectName: selSubject.name     || '',
-    token:       token,
-    startTime:   firebase.firestore.FieldValue.serverTimestamp(),
+    teacherId:    currentTeacher.id   || '',
+    teacherName:  currentTeacher.name || '',
+    teacherDept:  currentTeacher.dept || '',
+    subjectId:    selSubject.id       || '',
+    subjectCode:  selSubject.code     || '',
+    subjectName:  selSubject.name     || '',
+    token:        token,
+    startTime:    firebase.firestore.FieldValue.serverTimestamp(),
     lastHeartbeat: firebase.firestore.FieldValue.serverTimestamp(),
-    startMs:     Date.now(),
-    active:      true,
-    scanCount:   0
+    startMs:      Date.now(),
+    active:       true,
+    scanCount:    0,
+    graceMins:    graceMins,
+    durationMins: durationMins
   };
 
   db.collection('sessions').add(sessionData).then(function(ref) {
-    activeSession = { id: ref.id, ...sessionData, startMs: Date.now() };
+    activeSession = { id: ref.id, ...sessionData, startMs: Date.now(), graceMins, durationMins };
     setupSessionUI();
     genQR(token, ref.id);
     startTimer();
     startHeartbeat(ref.id);
     listenMyScans(ref.id);
-    notify('Session started! Show QR on projector.');
+    startAutoTimeout(durationMins);
+
+    // Show auto-end label
+    if (durationMins > 0) {
+      var endTime = new Date(Date.now() + durationMins * 60000);
+      var endStr  = endTime.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('auto-end-label').style.display = '';
+      document.getElementById('auto-end-label').textContent   = 'Auto-ends at ' + endStr;
+    }
+    notify('Session started! Grace period: ' + graceMins + ' min.');
   }).catch(function(err) {
     console.error('Session start error:', err.code, err.message);
     var reason = '';
@@ -1060,6 +1108,8 @@ function stopSession() {
   teardownSessionUI();
   // Write to Firestore — set active to false
   stopHeartbeat();
+  stopAutoTimeout();
+  document.getElementById('auto-end-label').style.display = 'none';
   db.collection('sessions').doc(stoppingId).update({
     active: false,
     endTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -1122,7 +1172,8 @@ function buildAttendanceUrl(token, sessionId) {
     '&sid='+ (sessionId || activeSession.id) +
     '&l='  + encodeURIComponent(selSubject.lec || '') +
     '&ss=' + (activeSession?.startMs || Date.now()) +
-    '&tn=' + encodeURIComponent(currentTeacher.name);
+    '&tn=' + encodeURIComponent(currentTeacher.name) +
+    '&gp=' + (activeSession?.graceMins || 15);
 }
 
 function genQR(token, sessionId) {
@@ -1180,6 +1231,46 @@ function startTimer() {
       }
     }
   }, 1000);
+}
+
+// ── AUTO SESSION TIMEOUT ────────────────────────────────────────────
+var autoTimeoutTimer = null;
+var autoTimeoutCountdown = null;
+
+function startAutoTimeout(durationMins) {
+  clearTimeout(autoTimeoutTimer);
+  clearInterval(autoTimeoutCountdown);
+  if (!durationMins || durationMins <= 0) return;
+
+  var endMs = Date.now() + durationMins * 60000;
+  var warnedAt5 = false;
+
+  // Countdown warning every minute
+  autoTimeoutCountdown = setInterval(function() {
+    var remaining = Math.round((endMs - Date.now()) / 60000);
+    if (remaining <= 5 && !warnedAt5) {
+      warnedAt5 = true;
+      notify('Session auto-ends in 5 minutes!', 'err');
+    }
+    if (remaining <= 0) {
+      clearInterval(autoTimeoutCountdown);
+    }
+  }, 60000);
+
+  // Auto-stop at exact end time
+  autoTimeoutTimer = setTimeout(function() {
+    if (activeSession) {
+      notify('Session auto-ended after ' + durationMins + ' minutes.');
+      stopSession();
+    }
+  }, durationMins * 60000);
+}
+
+function stopAutoTimeout() {
+  clearTimeout(autoTimeoutTimer);
+  clearInterval(autoTimeoutCountdown);
+  autoTimeoutTimer = null;
+  autoTimeoutCountdown = null;
 }
 
 function updateTimerUI() {
@@ -1415,13 +1506,14 @@ function dlCSV(rows,name) {
 // ══════════════════════════════════════════
 function initStudent() {
   const p = {
-    subject:     urlP.get('s') || '',
+    subject:     urlP.get('s')  || '',
     subjectName: urlP.get('sn') || '',
-    token:       urlP.get('t') || '',
-    sessionId:   urlP.get('sid') || '',
-    lec:         urlP.get('l') || '',
+    token:       urlP.get('t')  || '',
+    sessionId:   urlP.get('sid')|| '',
+    lec:         urlP.get('l')  || '',
     ss:          parseInt(urlP.get('ss') || '0'),
-    teacher:     urlP.get('tn') || ''
+    teacher:     urlP.get('tn') || '',
+    graceMins:   parseInt(urlP.get('gp') || '15')
   };
 
   if (!p.token || !p.subject || !p.sessionId) {
@@ -1460,6 +1552,21 @@ function initStudent() {
     document.getElementById('sv-form').style.display = '';
     document.getElementById('sv-timer').textContent = 'Active';
     window._sp = p;
+    // Show initial grace period status
+    if (p.ss) {
+      var minsElapsed = Math.round((Date.now() - p.ss) / 60000);
+      var graceLeft   = (p.graceMins || 15) - minsElapsed;
+      var graceEl     = document.getElementById('sv-grace-label');
+      if (graceEl) {
+        if (graceLeft > 0) {
+          graceEl.textContent = graceLeft + ' min left';
+          graceEl.style.color = 'var(--green)';
+        } else {
+          graceEl.textContent = 'Late submission';
+          graceEl.style.color = 'var(--red)';
+        }
+      }
+    }
 
     // Poll Firebase every 10s to detect if token rotated or session ended
     window._stiv = setInterval(() => {
@@ -1529,8 +1636,9 @@ function submitAttendance() {
   btn.textContent = 'Verifying...';
 
   const p = window._sp;
-  const minsDiff = p.ss ? Math.round((Date.now() - p.ss) / 60000) : 0;
-  const status  = minsDiff > 10 ? 'Late' : 'Present';
+  const minsDiff  = p.ss ? Math.round((Date.now() - p.ss) / 60000) : 0;
+  const graceMins = window._sp ? (window._sp.graceMins || 15) : 15;
+  const status    = minsDiff > graceMins ? 'Late' : 'Present';
   const now     = new Date();
   const timeStr = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
   const dateStr = now.toLocaleDateString('en-CA');
