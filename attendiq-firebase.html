@@ -1213,6 +1213,8 @@ function goTab(id, btn) {
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
   document.getElementById('t-' + id).classList.add('on');
   btn.classList.add('on');
+  // Load extended 30-day dataset when switching to data-heavy tabs
+  if (id === 'log' || id === 'summary') loadAllScansForRange();
   if (id === 'log') refreshLogTab();
   if (id === 'summary') refreshSummaryTab();
 }
@@ -1903,24 +1905,59 @@ function listenAllSessions() {
 }
 
 function listenAllScans() {
-  // No orderBy — avoids composite index requirement. Sort in JS.
-  db.collection('attendance').onSnapshot(function(snap) {
-    allScans = snap.docs
-      .map(function(d) { return {id:d.id,...d.data()}; })
-      .sort(function(a,b) {
-        // Sort by date+time descending
-        const da = (a.date||'') + (a.time||'');
-        const db2 = (b.date||'') + (b.time||'');
-        return db2.localeCompare(da);
+  // PERF FIX 1: filter to today only for the real-time listener.
+  // This means 150 students all hitting at once never cause the
+  // listener to re-download weeks of historical data.
+  // The Log and Summary tabs use loadAllScansForRange() instead.
+  var today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  db.collection('attendance')
+    .where('date', '==', today)
+    .onSnapshot(function(snap) {
+      allScans = snap.docs
+        .map(function(d) { return {id:d.id,...d.data()}; })
+        .sort(function(a,b) {
+          const da = (a.date||'') + (a.time||'');
+          const db2 = (b.date||'') + (b.time||'');
+          return db2.localeCompare(da);
+        });
+      updateLogStats();
+      // PERF FIX 2: debounced renderLog — batches rapid-fire arrivals
+      // into one DOM update instead of re-rendering on every single scan
+      scheduleRenderLog();
+      if (document.getElementById('t-summary').classList.contains('on')) {
+        scheduleRenderSummary();
+      }
+    }, function(err) {
+      console.error('All scans listener error:', err.code, err.message);
+    });
+}
+
+// Load a wider date range for the Log / Summary tabs (called on tab switch)
+var allScansExtended = [];
+function loadAllScansForRange() {
+  // Load last 30 days — enough for summaries, still bounded
+  var d = new Date();
+  d.setDate(d.getDate() - 30);
+  var from = d.toLocaleDateString('en-CA');
+  db.collection('attendance')
+    .where('date', '>=', from)
+    .get()
+    .then(function(snap) {
+      allScansExtended = snap.docs
+        .map(function(d) { return {id:d.id,...d.data()}; })
+        .sort(function(a,b) {
+          return ((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||''));
+        });
+      // Merge today's live scans into extended set (deduplicate by id)
+      var ids = new Set(allScansExtended.map(function(r){ return r.id; }));
+      allScans.forEach(function(r) { if (!ids.has(r.id)) allScansExtended.push(r); });
+      allScansExtended.sort(function(a,b) {
+        return ((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||''));
       });
-    updateLogStats();
-    renderLog();
-    if (document.getElementById('t-summary').classList.contains('on')) {
-      refreshSummaryTab();
-    }
-  }, function(err) {
-    console.error('All scans listener error:', err.code, err.message);
-  });
+      updateLogStatsExtended();
+      renderLog();
+    })
+    .catch(function(err) { console.error('loadAllScansForRange error:', err); });
 }
 
 function renderScanTable(scans, total) {
@@ -1958,9 +1995,28 @@ function renderAllSessions(sessions) {
     </div>`).join('');
 }
 
+
+// ── PERF FIX 2: debounced render helpers ────────────────────────────
+// Collapses rapid-fire Firestore snapshot events into one DOM update.
+var _renderLogTimer    = null;
+var _renderSummTimer   = null;
+function scheduleRenderLog() {
+  clearTimeout(_renderLogTimer);
+  _renderLogTimer = setTimeout(function() { renderLog(); }, 350);
+}
+function scheduleRenderSummary() {
+  clearTimeout(_renderSummTimer);
+  _renderSummTimer = setTimeout(function() { refreshSummaryTab(); }, 400);
+}
+
 // ══════════════════════════════════════════
 //  LOG TAB
 // ══════════════════════════════════════════
+function refreshLogTab() {
+  updateLogStatsExtended();
+  scheduleRenderLog();
+}
+
 function updateLogStats() {
   const sessions = new Set(allScans.map(s=>s.sessionId)).size;
   document.getElementById('as-sess').textContent = sessions;
@@ -1982,11 +2038,33 @@ function updateLogStats() {
   });
 }
 
+function updateLogStatsExtended() {
+  // Uses the 30-day extended dataset — called when Log tab is opened
+  var src = allScansExtended.length ? allScansExtended : allScans;
+  document.getElementById('as-sess').textContent  = new Set(src.map(function(s){ return s.sessionId; })).size;
+  document.getElementById('as-scans').textContent = src.length;
+  document.getElementById('as-subj').textContent  = new Set(src.map(function(s){ return s.subjectCode; })).size;
+  var present = src.filter(function(s){ return s.status==='Present'; }).length;
+  document.getElementById('as-avg').textContent   = src.length ? Math.round((present/src.length)*100)+'%' : '—';
+  var fSubj  = document.getElementById('f-subj');
+  var fTeach = document.getElementById('f-teacher');
+  var curS = fSubj.value, curT = fTeach.value;
+  fSubj.innerHTML  = '<option value="">All Subjects</option>';
+  fTeach.innerHTML = '<option value="">All Teachers</option>';
+  Array.from(new Set(src.map(function(s){ return s.subjectCode; }))).sort().forEach(function(code) {
+    fSubj.innerHTML += '<option value="' + code + '"' + (curS===code?' selected':'') + '>' + code + '</option>';
+  });
+  Array.from(new Set(src.map(function(s){ return s.teacherName; }))).forEach(function(t) {
+    fTeach.innerHTML += '<option value="' + t + '"' + (curT===t?' selected':'') + '>' + t + '</option>';
+  });
+}
+
 function renderLog() {
   const sf = document.getElementById('f-subj').value;
   const tf = document.getElementById('f-teacher').value;
   const df = document.getElementById('f-date').value;
-  let rows = allScans;
+  var src = allScansExtended.length ? allScansExtended : allScans;
+  let rows = src;
   if (sf) rows = rows.filter(r=>r.subjectCode===sf);
   if (tf) rows = rows.filter(r=>r.teacherName===tf);
   if (df) rows = rows.filter(r=>r.date===df);
@@ -2222,28 +2300,50 @@ function submitAttendance() {
     const timeStr  = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
     const dateStr  = now.toLocaleDateString('en-CA');
 
-    btn.textContent = 'Checking...';
-    db.collection('attendance').where('sessionId','==',p.sessionId).get()
-      .then(function(snap) {
-        const existing = snap.docs.map(d => d.data());
-        const deviceDup = existing.find(r => r.deviceId === deviceId);
-        if (deviceDup) { resetBtn(); showSvErr('Already Submitted', 'Attendance already marked from this device.'); return Promise.reject('dup'); }
-        const idDup = existing.find(r => r.studentId === id);
-        if (idDup) { resetBtn(); showSvErr('Already Marked', 'Attendance for ' + id + ' already recorded.'); return Promise.reject('dup'); }
+    btn.textContent = 'Saving...';
 
-        btn.textContent = 'Saving...';
-        var rec = {
-          sessionId: p.sessionId, subjectCode: p.subject, subjectName: p.subjectName,
-          teacherName: p.teacher, studentId: id, studentName: name, year: year,
-          date: dateStr, time: timeStr, token: p.token, deviceId: deviceId,
-          status: status, geoVerified: studentLat !== null,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        if (studentLat !== null) { rec.studentLat = studentLat; rec.studentLng = studentLng; rec.distMetres = Math.round(distMetres); }
-        return db.collection('attendance').add(rec);
-      })
-      .then(function(ref) {
-        if (!ref) return;
+    // PERF FIX 3: Firestore transaction with sentinel docs.
+    // Instead of reading ALL attendance records to check for duplicates
+    // (O(n) reads that grow with every student), we keep two tiny sentinel
+    // docs per submission:
+    //   dupGuard/{studentId}  — blocks same student ID twice
+    //   dupGuard/dev_{hash}   — blocks same device twice
+    // The transaction is atomic: if either sentinel already exists the
+    // whole write is rolled back. Zero race conditions, 2 reads max.
+    var guardRef   = db.collection('sessions').doc(p.sessionId).collection('dupGuard');
+    var idGuard    = guardRef.doc('id_'  + id.replace(/\//g,'_'));
+    var devGuard   = guardRef.doc('dev_' + deviceId.slice(0,20));
+    var attendRef  = db.collection('attendance').doc(); // pre-generate ID
+
+    var rec = {
+      sessionId: p.sessionId, subjectCode: p.subject, subjectName: p.subjectName,
+      teacherName: p.teacher, studentId: id, studentName: name, year: year,
+      date: dateStr, time: timeStr, token: p.token, deviceId: deviceId,
+      status: status, geoVerified: studentLat !== null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (studentLat !== null) { rec.studentLat = studentLat; rec.studentLng = studentLng; rec.distMetres = Math.round(distMetres); }
+
+    db.runTransaction(function(tx) {
+      return Promise.all([tx.get(idGuard), tx.get(devGuard)]).then(function(results) {
+        var idDoc  = results[0];
+        var devDoc = results[1];
+        if (idDoc.exists) {
+          resetBtn();
+          showSvErr('Already Marked', 'Attendance for ' + id + ' has already been recorded for this session.');
+          return Promise.reject('dup');
+        }
+        if (devDoc.exists) {
+          resetBtn();
+          showSvErr('Already Submitted', 'Attendance has already been marked from this device.');
+          return Promise.reject('dup');
+        }
+        tx.set(idDoc.ref,  { studentId: id,       createdAt: new Date().toISOString() });
+        tx.set(devDoc.ref, { deviceId:  deviceId,  createdAt: new Date().toISOString() });
+        tx.set(attendRef,  rec);
+      });
+    })
+      .then(function() {
         db.collection('sessions').doc(p.sessionId).update({ scanCount: firebase.firestore.FieldValue.increment(1) });
         clearInterval(window._stiv);
         document.getElementById('sv-form').style.display = 'none';
@@ -2496,7 +2596,8 @@ function refreshSummaryTab() {
   const sf = document.getElementById('sf-subj');
   const cur = sf.value;
   sf.innerHTML = '<option value="">All Subjects</option>';
-  [...new Set(allScans.map(s => s.subjectCode))].sort().forEach(code => {
+  var summSrc2 = allScansExtended.length ? allScansExtended : allScans;
+  [...new Set(summSrc2.map(s => s.subjectCode))].sort().forEach(code => {
     sf.innerHTML += `<option value="${code}" ${cur===code?'selected':''}>${code}</option>`;
   });
   renderSummary();
