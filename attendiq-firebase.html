@@ -487,6 +487,7 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
     <button class="nb" onclick="goTab('live',this)">All Live Sessions</button>
     <button class="nb" onclick="goTab('log',this)">Attendance Log</button>
     <button class="nb" onclick="goTab('summary',this)">Student Summary</button>
+    <button class="nb" onclick="goTab('analytics',this)">📊 Analytics</button>
   </div>
   <div class="main">
 
@@ -898,6 +899,176 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
         </div>
       </div>
     </div>
+
+    <!-- ANALYTICS TAB -->
+    <div class="tab" id="t-analytics">
+      <div class="pg-title">Analytics &amp; Looker Studio</div>
+      <div class="pg-sub">Export data for Google Looker Studio and connect your live Firestore data to a BI dashboard</div>
+
+      <!-- ── EXPORT CARDS ── -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:24px;">
+
+        <div class="card" style="border-color:var(--green-bd);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;">Looker Studio CSV</div>
+              <div style="font-size:11px;color:var(--text2);">All raw scans, Looker-ready</div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.55;">One row per scan with SessionID, SubjectCode, StudentID, Status, Date, Time, Teacher, Dept, GeoVerified, Distance. Ready to drop into Looker Studio.</p>
+          <button class="btn btn-p btn-sm" style="width:100%;" onclick="exportLookerRaw()">⬇ Export Raw Scans CSV</button>
+        </div>
+
+        <div class="card" style="border-color:var(--blue-bd);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;">Student Summary CSV</div>
+              <div style="font-size:11px;color:var(--text2);">Aggregated per student/subject</div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.55;">Pre-computed attendance percentage, sessions attended/missed, absent dates, and risk flag per student per subject. Best for summary dashboards.</p>
+          <button class="btn btn-g btn-sm" style="width:100%;border-color:var(--blue-bd);color:var(--blue);" onclick="exportLookerSummary()">⬇ Export Summary CSV</button>
+        </div>
+
+        <div class="card" style="border-color:var(--accent-bd);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;">Session Analytics CSV</div>
+              <div style="font-size:11px;color:var(--text2);">One row per session</div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.55;">Session-level metrics: total scans, present count, late count, attendance rate, teacher, subject, date. Ideal for trend and teacher-level charts.</p>
+          <button class="btn btn-g btn-sm" style="width:100%;border-color:var(--accent-bd);color:var(--accent);" onclick="exportLookerSessions()">⬇ Export Sessions CSV</button>
+        </div>
+
+      </div>
+
+      <!-- ── DATA RANGE SELECTOR ── -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="ctitle">Export Date Range</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div class="ep-fg" style="flex:1;min-width:140px;">
+            <label>From</label>
+            <input type="date" id="ax-from" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;width:100%;">
+          </div>
+          <div class="ep-fg" style="flex:1;min-width:140px;">
+            <label>To</label>
+            <input type="date" id="ax-to" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;width:100%;">
+          </div>
+          <div class="ep-fg" style="flex:1;min-width:140px;">
+            <label>Subject (optional)</label>
+            <select id="ax-subj" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;width:100%;">
+              <option value="">All Subjects</option>
+            </select>
+          </div>
+          <div style="padding-top:18px;">
+            <button class="btn btn-g btn-sm" onclick="axSetRange('semester')">This Semester</button>
+            <button class="btn btn-g btn-sm" onclick="axSetRange('month')" style="margin-left:4px;">This Month</button>
+            <button class="btn btn-g btn-sm" onclick="axSetRange('all')" style="margin-left:4px;">All Time</button>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3);" id="ax-range-info"></div>
+      </div>
+
+      <!-- ── LOOKER STUDIO SETUP GUIDE ── -->
+      <div class="card">
+        <div class="ctitle" style="margin-bottom:1rem;">📊 Connect to Google Looker Studio</div>
+
+        <!-- Step cards -->
+        <div style="display:flex;flex-direction:column;gap:0;">
+
+          <!-- Step 1 -->
+          <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#0c0f1a;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:1px;">1</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Export your data using the buttons above</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6;margin:0;">Download the <strong>Looker Studio CSV</strong> (raw scans) or <strong>Student Summary CSV</strong> depending on what charts you want. For a full live dashboard, download both.</p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#0c0f1a;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:1px;">2</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Open Google Looker Studio</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6;margin:0 0 8px;">Go to <strong>lookerstudio.google.com</strong> → <em>Create → Report</em> → <em>Add data</em> → select <strong>File Upload</strong>.</p>
+              <a href="https://lookerstudio.google.com/u/0/reporting/create" target="_blank" style="background:var(--blue-bg);border:1px solid var(--blue-bd);color:var(--blue);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;text-decoration:none;display:inline-block;">Open Looker Studio →</a>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#0c0f1a;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:1px;">3</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Upload the CSV and build your charts</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6;margin:0;">Drag the downloaded CSV into the File Upload connector. Looker Studio auto-detects all fields. Suggested charts to build:</p>
+              <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div style="background:var(--surface2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text2);">
+                  <div style="color:var(--text);font-weight:600;margin-bottom:2px;">Attendance Rate by Subject</div>
+                  Bar chart · SubjectCode vs Attendance %
+                </div>
+                <div style="background:var(--surface2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text2);">
+                  <div style="color:var(--text);font-weight:600;margin-bottom:2px;">Daily Attendance Trend</div>
+                  Time series · Date vs Present count
+                </div>
+                <div style="background:var(--surface2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text2);">
+                  <div style="color:var(--text);font-weight:600;margin-bottom:2px;">At-Risk Students</div>
+                  Table · Students with Attendance % &lt; 75
+                </div>
+                <div style="background:var(--surface2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text2);">
+                  <div style="color:var(--text);font-weight:600;margin-bottom:2px;">Present vs Late vs Absent</div>
+                  Pie/Donut · Status field breakdown
+                </div>
+                <div style="background:var(--surface2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text2);">
+                  <div style="color:var(--text);font-weight:600;margin-bottom:2px;">Department Comparison</div>
+                  Bar chart · TeacherDept vs Avg attendance
+                </div>
+                <div style="background:var(--surface2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text2);">
+                  <div style="color:var(--text);font-weight:600;margin-bottom:2px;">Late Arrival Patterns</div>
+                  Heatmap · Day of week vs Time slot
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4 — BigQuery live connection -->
+          <div style="display:flex;gap:14px;padding:14px 0;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:1px;">4</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Optional: Live connection via BigQuery <span style="background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;vertical-align:middle;">ADVANCED</span></div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6;margin:0 0 8px;">For a dashboard that updates automatically without re-uploading CSVs, connect Firestore to BigQuery using Google's free official extension. This creates a live synced table in BigQuery that Looker Studio reads directly.</p>
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--text2);margin-bottom:8px;">
+                <div style="color:var(--text);font-weight:600;margin-bottom:6px;">Setup steps:</div>
+                <ol style="margin:0;padding-left:18px;line-height:1.9;">
+                  <li>Go to <strong>Firebase Console → Extensions</strong></li>
+                  <li>Search <em>"Export Collections to BigQuery"</em> → Install (free, by Google)</li>
+                  <li>Point it at the <code style="background:var(--bg);padding:1px 5px;border-radius:3px;">attendance</code> and <code style="background:var(--bg);padding:1px 5px;border-radius:3px;">sessions</code> collections</li>
+                  <li>In Looker Studio → Add data → <strong>BigQuery</strong> → select project <code style="background:var(--bg);padding:1px 5px;border-radius:3px;">attendiq-fms</code></li>
+                  <li>Your dashboard now updates live as students scan</li>
+                </ol>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="https://console.firebase.google.com/project/attendiq-fms/extensions" target="_blank" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;text-decoration:none;display:inline-block;">Firebase Extensions →</a>
+                <a href="https://console.cloud.google.com/bigquery?project=attendiq-fms" target="_blank" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;text-decoration:none;display:inline-block;">BigQuery Console →</a>
+                <a href="https://firebase.google.com/docs/extensions/official/firestore-bigquery-export" target="_blank" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;text-decoration:none;display:inline-block;">Extension Docs →</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
 
   </div>
 </div>
@@ -1343,6 +1514,7 @@ function goTab(id, btn) {
   if (id === 'summary') refreshSummaryTab();
   // Repopulate enrollment selectors on every tab switch so subjects are always fresh
   if (id === 'enrollments') populateEnrollmentSelectors();
+  if (id === 'analytics')   { axInitDefaults(); loadAllScansForRange(); }
 }
 
 
@@ -3752,6 +3924,186 @@ function initEpDefaults() {
   const now = new Date();
   document.getElementById('ep-date').value = now.toLocaleDateString('en-CA');
   document.getElementById('ep-time').value = now.toTimeString().slice(0,5);
+}
+
+
+// ══════════════════════════════════════════
+//  ANALYTICS EXPORTS
+// ══════════════════════════════════════════
+function axInitDefaults() {
+  var now = new Date();
+  var toStr = now.toLocaleDateString('en-CA');
+  // Default from: start of current month
+  var from = new Date(now.getFullYear(), now.getMonth(), 1);
+  var fromStr = from.toLocaleDateString('en-CA');
+  if (!document.getElementById('ax-from').value) document.getElementById('ax-from').value = fromStr;
+  if (!document.getElementById('ax-to').value)   document.getElementById('ax-to').value   = toStr;
+  // Populate subject filter
+  var sel = document.getElementById('ax-subj');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">All Subjects</option>';
+  var src = allScansExtended.length ? allScansExtended : allScans;
+  [...new Set(src.map(function(s){ return s.subjectCode; }))].sort().forEach(function(code) {
+    sel.innerHTML += '<option value="'+code+'"'+(cur===code?' selected':'')+'>'+code+'</option>';
+  });
+  axUpdateRangeInfo();
+}
+
+function axSetRange(mode) {
+  var now = new Date();
+  var from, to = now.toLocaleDateString('en-CA');
+  if (mode === 'month') {
+    from = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA');
+  } else if (mode === 'semester') {
+    // Semester 1: Jan–Jun, Semester 2: Jul–Dec
+    var sem1 = now.getMonth() < 6;
+    from = new Date(now.getFullYear(), sem1 ? 0 : 6, 1).toLocaleDateString('en-CA');
+  } else {
+    from = '2020-01-01';
+  }
+  document.getElementById('ax-from').value = from;
+  document.getElementById('ax-to').value   = to;
+  axUpdateRangeInfo();
+}
+
+function axUpdateRangeInfo() {
+  var from = document.getElementById('ax-from').value;
+  var to   = document.getElementById('ax-to').value;
+  var src  = allScansExtended.length ? allScansExtended : allScans;
+  var filtered = src.filter(function(r){ return (!from||r.date>=from) && (!to||r.date<=to); });
+  document.getElementById('ax-range-info').textContent =
+    filtered.length + ' records in selected range · ' +
+    new Set(filtered.map(function(r){ return r.studentId; })).size + ' students · ' +
+    new Set(filtered.map(function(r){ return r.subjectCode; })).size + ' subjects';
+}
+
+function axGetFiltered() {
+  var from  = document.getElementById('ax-from').value;
+  var to    = document.getElementById('ax-to').value;
+  var subj  = document.getElementById('ax-subj').value;
+  var src   = allScansExtended.length ? allScansExtended : allScans;
+  return src.filter(function(r) {
+    if (from  && r.date < from) return false;
+    if (to    && r.date > to)   return false;
+    if (subj  && r.subjectCode !== subj) return false;
+    return true;
+  });
+}
+
+// ── Export 1: Raw scans — one row per scan, Looker-ready ──────────────
+function exportLookerRaw() {
+  var rows = axGetFiltered();
+  if (!rows.length) { notify('No data in selected range', 'err'); return; }
+  var headers = [['SessionID','SubjectCode','SubjectName','TeacherName','TeacherDept',
+                  'StudentID','StudentName','Year','Date','Time','Status',
+                  'GeoVerified','DistanceMetres']];
+  var data = rows.map(function(r) {
+    return [
+      r.sessionId    || '',
+      r.subjectCode  || '',
+      r.subjectName  || '',
+      r.teacherName  || '',
+      r.teacherDept  || '',
+      r.studentId    || '',
+      r.studentName  || '',
+      r.year         || '',
+      r.date         || '',
+      r.time         || '',
+      r.status       || '',
+      r.geoVerified  === true ? 'Yes' : r.geoVerified === false ? 'No' : '',
+      r.distMetres   != null ? r.distMetres : ''
+    ];
+  });
+  var fname = 'attendiq_raw_' + axFileSuffix() + '.csv';
+  dlCSV([...headers, ...data], fname);
+  notify('Exported ' + data.length + ' records → ' + fname);
+}
+
+// ── Export 2: Student summary — one row per student per subject ───────
+function exportLookerSummary() {
+  var rows = axGetFiltered();
+  if (!rows.length) { notify('No data in selected range', 'err'); return; }
+
+  var sessionsBySubj = {}, sessionDateMap = {};
+  rows.forEach(function(r) {
+    if (!sessionsBySubj[r.subjectCode]) sessionsBySubj[r.subjectCode] = new Set();
+    sessionsBySubj[r.subjectCode].add(r.sessionId);
+    if (!sessionDateMap[r.sessionId]) sessionDateMap[r.sessionId] = r.date;
+  });
+
+  var summary = {};
+  rows.forEach(function(r) {
+    var key = r.subjectCode + '|' + r.studentId;
+    if (!summary[key]) {
+      summary[key] = {
+        studentId: r.studentId, studentName: r.studentName,
+        year: r.year||'', subjectCode: r.subjectCode, subjectName: r.subjectName||'',
+        teacherName: r.teacherName||'', teacherDept: r.teacherDept||'',
+        attended: new Set(), allSessions: sessionsBySubj[r.subjectCode]
+      };
+    }
+    if (r.status === 'Present' || r.status === 'Late') summary[key].attended.add(r.sessionId);
+  });
+
+  var headers = [['SubjectCode','SubjectName','TeacherName','Department',
+                  'StudentID','StudentName','Year',
+                  'TotalSessions','Attended','Absent','AttendancePct','RiskFlag','AbsentDates']];
+  var data = Object.values(summary).map(function(s) {
+    var total = s.allSessions ? s.allSessions.size : 0;
+    var att   = s.attended.size;
+    var pct   = total > 0 ? Math.round((att/total)*100) : 0;
+    var flag  = pct >= 75 ? 'Good' : pct >= 50 ? 'Warning' : 'Danger';
+    var absentDates = [...(s.allSessions||[])].filter(function(sid){ return !s.attended.has(sid); })
+      .map(function(sid){ return sessionDateMap[sid]||'?'; }).sort().join('; ');
+    return [s.subjectCode, s.subjectName, s.teacherName, s.teacherDept,
+            s.studentId, s.studentName, s.year,
+            total, att, total-att, pct+'%', flag, absentDates];
+  }).sort(function(a,b){ return parseInt(a[10])-parseInt(b[10]); });
+
+  var fname = 'attendiq_summary_' + axFileSuffix() + '.csv';
+  dlCSV([...headers, ...data], fname);
+  notify('Exported ' + data.length + ' student rows → ' + fname);
+}
+
+// ── Export 3: Session-level analytics — one row per session ───────────
+function exportLookerSessions() {
+  var rows = axGetFiltered();
+  if (!rows.length) { notify('No data in selected range', 'err'); return; }
+
+  var sessions = {};
+  rows.forEach(function(r) {
+    var sid = r.sessionId;
+    if (!sessions[sid]) {
+      sessions[sid] = {
+        sessionId: sid, subjectCode: r.subjectCode, subjectName: r.subjectName||'',
+        teacherName: r.teacherName||'', teacherDept: r.teacherDept||'',
+        date: r.date||'', total: 0, present: 0, late: 0, absent: 0
+      };
+    }
+    sessions[sid].total++;
+    if (r.status === 'Present') sessions[sid].present++;
+    else if (r.status === 'Late') { sessions[sid].late++; sessions[sid].present++; }
+    else sessions[sid].absent++;
+  });
+
+  var headers = [['SessionID','SubjectCode','SubjectName','TeacherName','Department',
+                  'Date','TotalScans','Present','Late','Absent','AttendanceRate']];
+  var data = Object.values(sessions).sort(function(a,b){ return a.date.localeCompare(b.date); })
+    .map(function(s) {
+      var rate = s.total > 0 ? Math.round((s.present/s.total)*100) : 0;
+      return [s.sessionId, s.subjectCode, s.subjectName, s.teacherName, s.teacherDept,
+              s.date, s.total, s.present, s.late, s.absent, rate+'%'];
+    });
+
+  var fname = 'attendiq_sessions_' + axFileSuffix() + '.csv';
+  dlCSV([...headers, ...data], fname);
+  notify('Exported ' + data.length + ' sessions → ' + fname);
+}
+
+function axFileSuffix() {
+  var from = document.getElementById('ax-from').value || '';
+  var to   = document.getElementById('ax-to').value   || '';
+  return (from ? from : 'all') + '_to_' + (to ? to : new Date().toLocaleDateString('en-CA'));
 }
 
 // ══════════════════════════════════════════
