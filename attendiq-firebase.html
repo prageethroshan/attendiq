@@ -318,6 +318,12 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 .mv-err.on{display:block;}
 .mv-loading{text-align:center;padding:1.5rem 0;display:none;}
 
+/* ── GEOLOCATION ── */
+.sv-geo-bar{border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:10px;display:none;align-items:center;gap:8px;}
+.sv-geo-bar.show{display:flex;}
+.geo-teacher-bar{border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;display:none;align-items:center;gap:8px;}
+.geo-teacher-bar.show{display:flex;}
+
 /* ── FULLSCREEN QR ── */
 /* fullscreen styles below */
 
@@ -551,6 +557,24 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
                 </select>
               </div>
             </div>
+              <!-- Geolocation -->
+              <div style="display:flex;align-items:center;gap:8px;padding-top:2px;">
+                <label style="font-size:11px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="checkbox" id="geo-enabled" checked style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;">
+                  📍 Location Check
+                </label>
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);display:block;margin-bottom:5px;">Allowed Radius</label>
+                <select id="geo-radius" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;">
+                  <option value="50">50 m (strict)</option>
+                  <option value="100" selected>100 m</option>
+                  <option value="200">200 m</option>
+                  <option value="500">500 m (relaxed)</option>
+                </select>
+              </div>
+            </div>
+            <div id="geo-teacher-bar" class="geo-teacher-bar"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
               <button class="btn btn-p" id="btn-start" onclick="startSession()">▶ Start Session</button>
               <button class="btn btn-d" id="btn-stop" onclick="stopSession()" style="display:none;">■ Stop Session</button>
@@ -735,8 +759,8 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
         </div>
         <div style="overflow-x:auto;">
           <table class="tbl">
-            <thead><tr><th>Subject</th><th>Teacher</th><th>Student ID</th><th>Name</th><th>Year</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="log-body"><tr><td colspan="9" class="tbl-empty">Loading records…</td></tr></tbody>
+            <thead><tr><th>Subject</th><th>Teacher</th><th>Student ID</th><th>Name</th><th>Year</th><th>Date</th><th>Time</th><th>Status</th><th>📍</th><th>Actions</th></tr></thead>
+            <tbody id="log-body"><tr><td colspan="10" class="tbl-empty">Loading records…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -978,6 +1002,7 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
       <div class="s-fg"><label>Year / Batch</label>
         <select id="sv-year"><option value="">Select year</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
       </div>
+      <div id="sv-geo-bar" class="sv-geo-bar"></div>
       <button class="s-btn" id="sv-submit" onclick="submitAttendance()">Mark My Attendance</button>
       <p class="s-note">Only scan during class. QR refreshes every 2 minutes.<br>Duplicate submissions are automatically rejected.</p>
     </div>
@@ -1431,10 +1456,54 @@ function pickSubject(id) {
 // ══════════════════════════════════════════
 //  SESSION — Firebase
 // ══════════════════════════════════════════
+function geoTeacherFeedback(state, msg) {
+  var bar = document.getElementById('geo-teacher-bar');
+  if (!bar) return;
+  bar.classList.add('show');
+  bar.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' +
+    (state==='ok'?'var(--green)':state==='err'?'var(--red)':'var(--accent)') + ';' +
+    (state==='pending'?'animation:pls 1s infinite;':'') + '"></span><span>' + msg + '</span>';
+  bar.style.cssText += ';background:' + (state==='ok'?'var(--green-bg)':state==='err'?'var(--red-bg)':'var(--accent-bg)') +
+    ';border:1px solid ' + (state==='ok'?'var(--green-bd)':state==='err'?'var(--red-bd)':'var(--accent-bd)') +
+    ';color:' + (state==='ok'?'var(--green)':state==='err'?'var(--red)':'var(--accent)') + ';';
+}
+
 function startSession() {
   if (!selSubject) { notify('Select a subject first','err'); return; }
   if (activeSession) { notify('Already running'); return; }
 
+  var geoEl = document.getElementById('geo-enabled');
+  var radEl = document.getElementById('geo-radius');
+  var geoEnabled = geoEl ? geoEl.checked : false;
+  var geoRadius  = radEl ? (parseInt(radEl.value) || 100) : 100;
+
+  if (geoEnabled) {
+    if (!navigator.geolocation) {
+      notify('Browser does not support geolocation. Uncheck Location Check to continue.', 'err');
+      return;
+    }
+    geoTeacherFeedback('pending', 'Capturing classroom location…');
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        geoTeacherFeedback('ok', '📍 Location locked — ' + pos.coords.accuracy.toFixed(0) + 'm accuracy');
+        doStartSession(pos.coords.latitude, pos.coords.longitude, geoRadius);
+      },
+      function(err) {
+        var msg = err.code === 1
+          ? 'Location permission denied. Allow location in browser settings, or uncheck Location Check.'
+          : 'Could not get location. Check GPS/settings.';
+        geoTeacherFeedback('err', msg);
+        notify(msg, 'err');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+    return;
+  }
+  doStartSession(null, null, 0);
+}
+
+function doStartSession(geoLat, geoLng, geoRadius) {
+  var geoEnabled = geoLat !== null;
   const token        = mkToken();
   const graceMins    = parseInt(document.getElementById('grace-period').value)    || 15;
   const durationMins = parseInt(document.getElementById('session-duration').value) || 0;
@@ -1454,11 +1523,15 @@ function startSession() {
     active:       true,
     scanCount:    0,
     graceMins:    graceMins,
-    durationMins: durationMins
+    durationMins: durationMins,
+    geoEnabled:   geoEnabled,
+    geoLat:       geoEnabled ? geoLat    : 0,
+    geoLng:       geoEnabled ? geoLng    : 0,
+    geoRadius:    geoEnabled ? geoRadius : 0
   };
 
   db.collection('sessions').add(sessionData).then(function(ref) {
-    activeSession = { id: ref.id, ...sessionData, startMs: Date.now(), graceMins, durationMins };
+    activeSession = { id: ref.id, ...sessionData, startMs: Date.now(), graceMins, durationMins, geoLat: geoLat||0, geoLng: geoLng||0, geoRadius: geoRadius||0, geoEnabled: geoEnabled };
     setupSessionUI();
     genQR(token, ref.id);
     startTimer();
@@ -1902,10 +1975,10 @@ function updateLogStats() {
   fSubj.innerHTML = '<option value="">All Subjects</option>';
   fTeach.innerHTML = '<option value="">All Teachers</option>';
   [...new Set(allScans.map(s=>s.subjectCode))].forEach(c => {
-    fSubj.innerHTML += `<option value="${c}" ${curS===c?'selected':''}>${c}</option>`;
+    fSubj.innerHTML += `<option value="${c}" ${curS===c?'selected':''}}>${c}</option>`;
   });
   [...new Set(allScans.map(s=>s.teacherName))].forEach(t => {
-    fTeach.innerHTML += `<option value="${t}" ${curT===t?'selected':''}>${t}</option>`;
+    fTeach.innerHTML += `<option value="${t}" ${curT===t?'selected':''}}>${t}</option>`;
   });
 }
 
@@ -1918,9 +1991,14 @@ function renderLog() {
   if (tf) rows = rows.filter(r=>r.teacherName===tf);
   if (df) rows = rows.filter(r=>r.date===df);
   const tbody = document.getElementById('log-body');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" class="tbl-empty">No records found.</td></tr>'; return; }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="tbl-empty">No records found.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const dist = r.distMetres ? r.distMetres + 'm' : '';
+    const geoBadge = r.geoVerified === true
+      ? `<span style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;" title="Location verified">📍 ${dist}</span>`
+      : `<span style="color:var(--text3);font-size:11px;">—</span>`;
+    const sn = (r.studentName||''). replace(/'/g,'&#39;');
+    return `<tr>
       <td><span class="sbadge" style="font-size:10px;">${r.subjectCode}</span></td>
       <td style="color:var(--text2);font-size:11px;">${r.teacherName||'—'}</td>
       <td style="font-family:monospace;color:var(--accent);font-size:11px;">${r.studentId}</td>
@@ -1929,16 +2007,18 @@ function renderLog() {
       <td style="color:var(--text2);">${r.date}</td>
       <td style="color:var(--text2);">${r.time}</td>
       <td>
-        <select class="status-sel" onchange="changeStatus('${r.id}', this.value, this)" title="Change attendance status">
-          <option value="Present" ${r.status==='Present'?'selected':''}>✓ Present</option>
-          <option value="Late" ${r.status==='Late'?'selected':''}>⏱ Late</option>
-          <option value="Absent" ${r.status==='Absent'?'selected':''}>✕ Absent</option>
+        <select class="status-sel" onchange="changeStatus('${r.id}', this.value, this)" title="Change status">
+          <option value="Present" ${r.status==='Present'?'selected':''}>&#x2713; Present</option>
+          <option value="Late" ${r.status==='Late'?'selected':''}>&#x23F1; Late</option>
+          <option value="Absent" ${r.status==='Absent'?'selected':''}>&#x2715; Absent</option>
         </select>
       </td>
+      <td>${geoBadge}</td>
       <td class="act-cell">
-        <button class="act-btn act-del" onclick="promptRemove('${r.id}','${(r.studentName||'').replace(/'/g,"\\'")}','${r.studentId}')">✕ Remove</button>
+        <button class="act-btn act-del" onclick="promptRemove('${r.id}','${sn}','${r.studentId}')">&#x2715; Remove</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function clearFilt() {
@@ -2022,6 +2102,10 @@ function initStudent() {
     document.getElementById('sv-meta').textContent = p.teacher ? 'Lecturer: '+p.teacher : 'Mark your attendance';
     document.getElementById('sv-form').style.display = '';
     document.getElementById('sv-timer').textContent = 'Active';
+    p.geoEnabled = session.geoEnabled || false;
+    p.geoLat     = session.geoLat     || 0;
+    p.geoLng     = session.geoLng     || 0;
+    p.geoRadius  = session.geoRadius  || 100;
     window._sp = p;
     // Show initial grace period status
     if (p.ss) {
@@ -2093,98 +2177,130 @@ function getDeviceId() {
   return did;
 }
 
+// Haversine distance between two GPS points in metres
+function haversineMetres(lat1, lng1, lat2, lng2) {
+  var R = 6371000;
+  var f1 = lat1 * Math.PI / 180, f2 = lat2 * Math.PI / 180;
+  var df = (lat2 - lat1) * Math.PI / 180, dl = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(df/2)*Math.sin(df/2) + Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)*Math.sin(dl/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function svGeoBar(state, msg) {
+  var el = document.getElementById('sv-geo-bar');
+  if (!el) return;
+  el.classList.add('show');
+  var bg = state==='ok'?'var(--green-bg)':state==='err'?'var(--red-bg)':'var(--accent-bg)';
+  var bd = state==='ok'?'var(--green-bd)':state==='err'?'var(--red-bd)':'var(--accent-bd)';
+  var co = state==='ok'?'var(--green)'   :state==='err'?'var(--red)'   :'var(--accent)';
+  var dot = state==='pending' ? '<span style="width:7px;height:7px;border-radius:50%;background:'+co+';animation:pls 1s infinite;flex-shrink:0;"></span>' : '';
+  el.style.cssText = 'display:flex;align-items:center;gap:8px;border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:10px;background:'+bg+';border:1px solid '+bd+';color:'+co+';';
+  el.innerHTML = dot + '<span>' + msg + '</span>';
+}
+
 function submitAttendance() {
-  const id   = document.getElementById('sv-id').value.trim().toUpperCase(); // normalise for consistent lookup
+  const id   = document.getElementById('sv-id').value.trim().toUpperCase();
   const name = document.getElementById('sv-fname').value.trim();
   const year = document.getElementById('sv-year').value;
   if (!id)   { alert('Please enter your Student ID'); return; }
   if (!name) { alert('Please enter your Full Name'); return; }
   if (!year) { alert('Please select your year'); return; }
 
-  const deviceId = getDeviceId();
+  const p = window._sp;
   const btn = document.getElementById('sv-submit');
+  const deviceId = getDeviceId();
+
   btn.disabled = true;
   btn.textContent = 'Verifying...';
 
-  const p = window._sp;
-  const minsDiff  = p.ss ? Math.round((Date.now() - p.ss) / 60000) : 0;
-  const graceMins = window._sp ? (window._sp.graceMins || 15) : 15;
-  const status    = minsDiff > graceMins ? 'Late' : 'Present';
-  const now     = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-  const dateStr = now.toLocaleDateString('en-CA');
+  function resetBtn() { btn.disabled = false; btn.textContent = 'Mark My Attendance'; }
 
-  function resetBtn() {
-    btn.disabled = false;
-    btn.textContent = 'Mark My Attendance';
+  function saveRecord(studentLat, studentLng, distMetres) {
+    const minsDiff = p.ss ? Math.round((Date.now() - p.ss) / 60000) : 0;
+    const status   = minsDiff > (p.graceMins || 15) ? 'Late' : 'Present';
+    const now      = new Date();
+    const timeStr  = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const dateStr  = now.toLocaleDateString('en-CA');
+
+    btn.textContent = 'Checking...';
+    db.collection('attendance').where('sessionId','==',p.sessionId).get()
+      .then(function(snap) {
+        const existing = snap.docs.map(d => d.data());
+        const deviceDup = existing.find(r => r.deviceId === deviceId);
+        if (deviceDup) { resetBtn(); showSvErr('Already Submitted', 'Attendance already marked from this device.'); return Promise.reject('dup'); }
+        const idDup = existing.find(r => r.studentId === id);
+        if (idDup) { resetBtn(); showSvErr('Already Marked', 'Attendance for ' + id + ' already recorded.'); return Promise.reject('dup'); }
+
+        btn.textContent = 'Saving...';
+        var rec = {
+          sessionId: p.sessionId, subjectCode: p.subject, subjectName: p.subjectName,
+          teacherName: p.teacher, studentId: id, studentName: name, year: year,
+          date: dateStr, time: timeStr, token: p.token, deviceId: deviceId,
+          status: status, geoVerified: studentLat !== null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (studentLat !== null) { rec.studentLat = studentLat; rec.studentLng = studentLng; rec.distMetres = Math.round(distMetres); }
+        return db.collection('attendance').add(rec);
+      })
+      .then(function(ref) {
+        if (!ref) return;
+        db.collection('sessions').doc(p.sessionId).update({ scanCount: firebase.firestore.FieldValue.increment(1) });
+        clearInterval(window._stiv);
+        document.getElementById('sv-form').style.display = 'none';
+        document.getElementById('sv-ok').style.display   = '';
+        document.getElementById('sv-r-id').textContent      = id;
+        document.getElementById('sv-r-name').textContent    = name;
+        document.getElementById('sv-r-subj').textContent    = p.subject + (p.subjectName ? ' - ' + p.subjectName : '');
+        document.getElementById('sv-r-teacher').textContent = p.teacher || '-';
+        document.getElementById('sv-r-date').textContent    = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+        document.getElementById('sv-r-time').textContent    = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        document.getElementById('sv-r-status').textContent  = status;
+        document.getElementById('sv-r-status').style.color  = status === 'Late' ? 'var(--accent)' : 'var(--green)';
+      })
+      .catch(function(err) {
+        if (err === 'dup') return;
+        resetBtn();
+        showSvErr('Error', 'Could not save attendance. Check your connection and try again.');
+        console.error('Submit error:', err);
+      });
   }
 
-  // Single batched read — get all records for this session at once
-  // then check device AND studentId locally. Only 1 Firestore read instead of 2.
-  db.collection('attendance')
-    .where('sessionId', '==', p.sessionId)
-    .get()
-    .then(function(snap) {
-      const existing = snap.docs.map(function(d) { return d.data(); });
-
-      // Check device
-      const deviceDup = existing.find(function(r) { return r.deviceId === deviceId; });
-      if (deviceDup) {
-        resetBtn();
-        showSvErr('Already Submitted', 'Attendance has already been marked from this device for this session. Each device can only submit once.');
-        return Promise.reject('duplicate_device');
-      }
-
-      // Check student ID
-      const idDup = existing.find(function(r) { return r.studentId === id; });
-      if (idDup) {
-        resetBtn();
-        showSvErr('Already Marked', 'Attendance for Student ID ' + id + ' has already been recorded for this session.');
-        return Promise.reject('duplicate_id');
-      }
-
-      // Both checks passed — save to Firestore
-      btn.textContent = 'Saving...';
-      return db.collection('attendance').add({
-        sessionId:   p.sessionId,
-        subjectCode: p.subject,
-        subjectName: p.subjectName,
-        teacherName: p.teacher,
-        studentId:   id,
-        studentName: name,
-        year:        year,
-        date:        dateStr,
-        time:        timeStr,
-        token:       p.token,
-        deviceId:    deviceId,
-        status:      status,
-        createdAt:   firebase.firestore.FieldValue.serverTimestamp()
-      });
-    })
-    .then(function(docRef) {
-      if (!docRef) return; // was rejected above
-      // Update scan count
-      db.collection('sessions').doc(p.sessionId)
-        .update({ scanCount: firebase.firestore.FieldValue.increment(1) });
-      // Show success screen
-      clearInterval(window._stiv);
-      document.getElementById('sv-form').style.display = 'none';
-      document.getElementById('sv-ok').style.display   = '';
-      document.getElementById('sv-r-id').textContent      = id;
-      document.getElementById('sv-r-name').textContent    = name;
-      document.getElementById('sv-r-subj').textContent    = p.subject + (p.subjectName ? ' - ' + p.subjectName : '');
-      document.getElementById('sv-r-teacher').textContent = p.teacher || '-';
-      document.getElementById('sv-r-date').textContent    = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-      document.getElementById('sv-r-time').textContent    = timeStr;
-      document.getElementById('sv-r-status').textContent  = status;
-      document.getElementById('sv-r-status').style.color  = status === 'Late' ? 'var(--accent)' : 'var(--green)';
-    })
-    .catch(function(err) {
-      if (err === 'duplicate_device' || err === 'duplicate_id') return; // already handled
+  if (p.geoEnabled && p.geoLat) {
+    if (!navigator.geolocation) {
       resetBtn();
-      showSvErr('Error', 'Could not save attendance. Check your connection and try again.');
-      console.error('Submit error:', err);
-    });
+      showSvErr('Location Required', 'Your lecturer requires location verification but your browser does not support it. Try a different browser.');
+      return;
+    }
+    svGeoBar('pending', '📍 Checking your location — please allow location access…');
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        var dist = haversineMetres(pos.coords.latitude, pos.coords.longitude, p.geoLat, p.geoLng);
+        var limit = p.geoRadius || 100;
+        if (dist > limit) {
+          resetBtn();
+          svGeoBar('err', '📍 You are ' + Math.round(dist) + 'm away (limit: ' + limit + 'm)');
+          showSvErr('Too Far from Classroom',
+            'You appear to be ' + Math.round(dist) + ' metres from the classroom (limit: ' + limit + 'm). ' +
+            'You must be physically present. If this is wrong, contact your lecturer.');
+          return;
+        }
+        svGeoBar('ok', '📍 Location verified — ' + Math.round(dist) + 'm from classroom ✓');
+        saveRecord(pos.coords.latitude, pos.coords.longitude, dist);
+      },
+      function(err) {
+        resetBtn();
+        svGeoBar('err', '📍 Location access denied');
+        var msg = err.code === 1
+          ? 'Location access denied. Allow location in your browser settings and try again.'
+          : 'Could not get your location. Ensure GPS is on and try again.';
+        showSvErr('Location Required', msg);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+    return;
+  }
+
+  saveRecord(null, null, 0);
 }
 
 function showSvErr(title, msg) {
@@ -2250,6 +2366,10 @@ function initStudentFromManual(params, sessionId, session) {
     ss:          session.startMs || 0,
     teacher:     session.teacherName || ''
   };
+  p.geoEnabled = session.geoEnabled || false;
+  p.geoLat     = session.geoLat     || 0;
+  p.geoLng     = session.geoLng     || 0;
+  p.geoRadius  = session.geoRadius  || 100;
   window._sp = p;
   document.getElementById('sv-code').textContent  = p.subject;
   document.getElementById('sv-sname').textContent = p.subjectName || p.subject;
