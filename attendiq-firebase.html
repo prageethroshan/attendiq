@@ -331,17 +331,17 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 @keyframes slin{from{transform:translateY(14px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 
 /* ── FULLSCREEN QR ── */
-.fs-overlay{display:none;position:fixed;inset:0;background:#fff;z-index:1000;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+.fs-overlay{display:none;position:fixed;inset:0;background:#fff;z-index:1000;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:60px 24px 20px;overflow-y:auto;box-sizing:border-box;}
 .fs-overlay.on{display:flex;}
-.fs-qr-wrap{background:#fff;padding:0;display:flex;align-items:center;justify-content:center;}
-#fs-qrcode canvas,#fs-qrcode img{width:min(80vw,80vh) !important;height:min(80vw,80vh) !important;}
-.fs-subject{font-family:'DM Serif Display',serif;font-size:clamp(20px,3vw,36px);color:#111;text-align:center;font-weight:700;}
-.fs-timer{font-size:clamp(14px,2vw,22px);color:#555;text-align:center;}
+.fs-qr-wrap{background:#fff;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#fs-qrcode canvas,#fs-qrcode img{width:min(52vw,52vh) !important;height:min(52vw,52vh) !important;}
+.fs-subject{font-family:'DM Serif Display',serif;font-size:clamp(16px,2.2vw,28px);color:#111;text-align:center;font-weight:700;max-width:90vw;}
+.fs-timer{font-size:clamp(12px,1.4vw,17px);color:#555;text-align:center;}
 .fs-timer b{color:#f5a623;}
 .fs-url{font-size:clamp(13px,1.8vw,20px);color:#333;text-align:center;background:#f5f5f5;border-radius:10px;padding:10px 24px;font-family:monospace;letter-spacing:0.5px;}
 .fs-url span{color:#f5a623;font-weight:700;}
 .fs-close{position:fixed;top:16px;right:16px;background:#111;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;z-index:1001;}
-.fs-hint{font-size:clamp(12px,1.5vw,16px);color:#888;text-align:center;}
+.fs-hint{font-size:clamp(11px,1.2vw,14px);color:#888;text-align:center;}
 .url-share-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;font-size:11px;color:var(--text2);text-align:center;width:100%;word-break:break-all;}
 .url-share-box b{color:var(--accent);font-size:12px;}
 
@@ -868,20 +868,20 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="fs-timer">QR refreshes in <b id="fs-timer-sec">120</b>s</div>
 
   <!-- Can't-scan fallback block — prominently shown on projector -->
-  <div style="text-align:center;margin-top:10px;">
-    <div style="display:inline-block;background:#f8f8f8;border-radius:14px;padding:14px 28px;max-width:560px;width:100%;">
-      <div style="font-size:clamp(13px,1.6vw,18px);color:#555;margin-bottom:6px;font-weight:600;">
-        📵 Can't scan? Type this in your browser:
+  <div style="text-align:center;width:100%;max-width:640px;">
+    <div style="display:inline-block;background:#f5f5f5;border-radius:12px;padding:10px 22px;width:100%;box-sizing:border-box;">
+      <div style="font-size:clamp(11px,1.3vw,15px);color:#555;margin-bottom:4px;font-weight:600;">
+        📵 Can't scan? Open your browser and go to:
       </div>
-      <div style="font-family:monospace;font-size:clamp(14px,1.8vw,22px);color:#111;font-weight:700;letter-spacing:0.5px;word-break:break-all;" id="fs-manual-url">—</div>
-      <div style="margin-top:10px;font-size:clamp(12px,1.4vw,16px);color:#666;">
+      <div style="font-family:monospace;font-size:clamp(12px,1.5vw,18px);color:#111;font-weight:700;letter-spacing:0.3px;word-break:break-all;" id="fs-manual-url">—</div>
+      <div style="margin-top:6px;font-size:clamp(11px,1.1vw,14px);color:#666;">
         Then enter the code:
-        <span style="font-family:monospace;font-size:clamp(20px,2.8vw,38px);font-weight:900;color:#f5a623;letter-spacing:8px;display:block;margin-top:4px;" id="fs-short-code">—</span>
+        <span style="font-family:monospace;font-size:clamp(18px,2.4vw,32px);font-weight:900;color:#f5a623;letter-spacing:6px;display:block;margin-top:2px;" id="fs-short-code">—</span>
       </div>
     </div>
   </div>
 
-  <div class="fs-hint" style="margin-top:8px;">Open camera → point at QR → tap link · or type the URL above and enter the code</div>
+  <div class="fs-hint">Open camera → point at QR → tap link, or type the URL above and enter the code</div>
 </div>
 
 <!-- ══ STUDENT LOOKUP VIEW ══ -->
@@ -2416,7 +2416,7 @@ function openFullscreen() {
     try {
       new QRCode(document.getElementById('fs-qrcode'), {
         text: url,
-        width: 420, height: 420,
+        width: 340, height: 340,
         colorDark: '#000000', colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
@@ -2478,7 +2478,7 @@ function refreshFsIfOpen(token, url) {
   setTimeout(function() {
     try {
       new QRCode(document.getElementById('fs-qrcode'), {
-        text: url, width: 420, height: 420,
+        text: url, width: 340, height: 340,
         colorDark: '#000000', colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
