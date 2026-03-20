@@ -741,7 +741,7 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
           </div>
         </div>
       </div>
-    </div>
+
 
     <!-- ALL LIVE SESSIONS -->
     <div class="tab" id="t-live">
@@ -3273,16 +3273,26 @@ var enrollmentCounts = {};   // subjectCode → count (for badge)
 var enrollmentCache  = {};   // subjectCode → [{id, name, year}] (for validation)
 
 // Load enrollment counts for all subjects (lightweight — just document exists + size field)
+var unsubEnrollments = null;
 function loadEnrollmentCounts() {
-  db.collection('enrollments').get().then(function(snap) {
+  if (unsubEnrollments) unsubEnrollments();
+  // Use onSnapshot so the badge and dropdowns update live when lists are
+  // uploaded or deleted, and data is always current after a refresh.
+  unsubEnrollments = db.collection('enrollments').onSnapshot(function(snap) {
     enrollmentCounts = {};
     snap.docs.forEach(function(d) {
       var data = d.data();
-      enrollmentCounts[d.id] = data.count || (data.students ? data.students.length : 0);
+      var count = data.count || (data.students ? data.students.length : 0);
+      enrollmentCounts[d.id] = count;
+      // Also pre-warm the cache so viewEnrollment() never needs a second fetch
+      if (data.students) enrollmentCache[d.id] = data.students;
     });
     renderSubjectList();
     populateEnrollmentSelectors();
-  }).catch(function(err) { console.error('loadEnrollmentCounts:', err); });
+    // If the enrollments tab is currently open, refresh the view too
+    var viewSel = document.getElementById('enroll-view-sel');
+    if (viewSel && viewSel.value) viewEnrollment();
+  }, function(err) { console.error('loadEnrollmentCounts:', err); });
 }
 
 function populateEnrollmentSelectors() {
