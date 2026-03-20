@@ -170,6 +170,8 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 .login-fg input:focus,.login-fg select:focus{border-color:var(--accent);}
 .login-btn{width:100%;padding:12px;background:var(--accent);color:#0c0f1a;border:none;border-radius:var(--rs);font-family:DM Sans,sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;transition:background 0.12s;}
 .login-btn:hover{background:var(--accent2);}
+.login-btn:disabled{background:var(--surface2);color:var(--text2);cursor:not-allowed;}
+.login-err{background:var(--red-bg);border:1px solid var(--red-bd);border-radius:var(--rs);padding:9px 13px;font-size:12px;color:var(--red);margin-top:8px;display:none;text-align:left;}
 
 /* ── STUDENT ── */
 .sv{display:none;}
@@ -454,8 +456,14 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
         <option>Department of Accountancy and Finance</option><option>Department of Business Management</option><option>Department of Information Systems</option><option>Department of Marketing Management</option><option>Department of Human Resource Management</option><option>Department of Tourism and Hospitality Management</option>
       </select>
     </div>
-    <button class="login-btn" onclick="doLogin()">Enter Dashboard →</button>
-    <p style="font-size:11px;color:var(--text3);margin-top:12px;">No password required. Your name identifies your sessions.</p>
+    <div class="login-fg">
+      <label>Faculty Access Code</label>
+      <input type="password" id="l-pin" placeholder="Enter access code" autocomplete="off"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Enter Dashboard →</button>
+    <p style="font-size:11px;color:var(--text3);margin-top:12px;">Access code is provided by your faculty administrator.</p>
   </div>
 </div>
 
@@ -1250,15 +1258,59 @@ let unsubScans = null;
 let unsubSessions = null;
 let unsubSubjects = null;
 
+function showLoginErr(msg) {
+  var el = document.getElementById('login-err');
+  el.textContent = msg;
+  el.style.display = msg ? '' : 'none';
+}
+
 function doLogin() {
-  const name = document.getElementById('l-name').value.trim();
-  const dept = document.getElementById('l-dept').value;
-  if (!name) { alert('Please enter your name'); return; }
-  if (!dept) { alert('Please select your department'); return; }
-  currentTeacher = { name, dept, id: name.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now() };
-  sessionStorage.setItem('attendiq_teacher', JSON.stringify(currentTeacher));
-  document.getElementById('login-overlay').classList.add('hidden');
-  showTeacherDashboard();
+  var name = document.getElementById('l-name').value.trim();
+  var dept = document.getElementById('l-dept').value;
+  var pin  = document.getElementById('l-pin').value.trim();
+  showLoginErr('');
+  if (!name) { showLoginErr('Please enter your name.'); return; }
+  if (!dept) { showLoginErr('Please select your department.'); return; }
+  if (!pin)  { showLoginErr('Please enter the faculty access code.'); return; }
+
+  var btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+
+  db.collection('config').doc('teacherAccess').get().then(function(doc) {
+    var storedPin = doc.exists ? (doc.data().pin || '') : '';
+
+    // First-time setup: no PIN stored yet — the first person to log in sets it
+    if (!storedPin) {
+      return db.collection('config').doc('teacherAccess').set({
+        pin: pin,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: name,
+        note: 'First login set this PIN. Change it in Firebase Console if needed.'
+      }).then(function() { return pin; });
+    }
+    return Promise.resolve(storedPin);
+  })
+  .then(function(validPin) {
+    btn.disabled = false;
+    btn.textContent = 'Enter Dashboard →';
+    if (pin !== validPin) {
+      showLoginErr('Incorrect access code. Please check with your faculty administrator.');
+      document.getElementById('l-pin').value = '';
+      document.getElementById('l-pin').focus();
+      return;
+    }
+    currentTeacher = { name: name, dept: dept, id: name.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now() };
+    sessionStorage.setItem('attendiq_teacher', JSON.stringify(currentTeacher));
+    document.getElementById('login-overlay').classList.add('hidden');
+    showTeacherDashboard();
+  })
+  .catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = 'Enter Dashboard →';
+    showLoginErr('Could not verify access code. Check your connection and try again.');
+    console.error('Login error:', err);
+  });
 }
 
 function showTeacherDashboard() {
@@ -1554,6 +1606,49 @@ function startSession() {
   if (!selSubject) { notify('Select a subject first','err'); return; }
   if (activeSession) { notify('Already running'); return; }
 
+  var subCode = selSubject.code || '';
+
+  // Guard: check Firestore for any active session already running for this subject
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-start').textContent = 'Checking…';
+
+  db.collection('sessions')
+    .where('subjectCode', '==', subCode)
+    .where('active', '==', true)
+    .get()
+    .then(function(snap) {
+      document.getElementById('btn-start').disabled = false;
+      document.getElementById('btn-start').textContent = '▶ Start Session';
+
+      var now = Date.now();
+      var conflict = null;
+      snap.docs.forEach(function(doc) {
+        var s = doc.data();
+        var hb = s.lastHeartbeat ? (s.lastHeartbeat.toMillis ? s.lastHeartbeat.toMillis() : s.lastHeartbeat) : 0;
+        if ((now - hb) / 1000 < 90) conflict = s; // live heartbeat = genuinely active
+      });
+
+      if (conflict) {
+        notify(
+          '⚠ ' + subCode + ' already has an active session by ' +
+          (conflict.teacherName || 'another teacher') +
+          '. Stop that session before starting a new one.', 'err'
+        );
+        return;
+      }
+
+      // No conflict — proceed
+      proceedStartSession();
+    })
+    .catch(function() {
+      // If the check fails, let the session start anyway (don't block on network error)
+      document.getElementById('btn-start').disabled = false;
+      document.getElementById('btn-start').textContent = '▶ Start Session';
+      proceedStartSession();
+    });
+}
+
+function proceedStartSession() {
   var geoEl = document.getElementById('geo-enabled');
   var radEl = document.getElementById('geo-radius');
   var geoEnabled = geoEl ? geoEl.checked : false;
