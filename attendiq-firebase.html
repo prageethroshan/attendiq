@@ -293,6 +293,31 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 .lv-bar-wrap{background:var(--surface2);border-radius:20px;height:6px;min-width:80px;}
 .lv-bar{height:6px;border-radius:20px;transition:width 0.6s ease;}
 
+/* ── MANUAL CODE ENTRY ── */
+.mv{display:none;}
+.mv.on{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.25rem;background:var(--bg);}
+.mv-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:2rem 1.75rem;width:100%;max-width:400px;}
+.mv-brand{display:flex;align-items:center;gap:9px;margin-bottom:1.75rem;}
+.mv-bico{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.mv-bico svg{width:18px;height:18px;fill:#0c0f1a;}
+.mv-bname{font-family:'DM Serif Display',serif;font-size:18px;}
+.mv-bname em{color:var(--accent);font-style:normal;}
+.mv-icon-ring{width:64px;height:64px;border-radius:50%;background:var(--accent-bg);border:2px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;}
+.mv-title{font-family:'DM Serif Display',serif;font-size:22px;text-align:center;margin-bottom:8px;}
+.mv-hint{font-size:13px;color:var(--text2);text-align:center;line-height:1.65;margin-bottom:1.75rem;}
+.mv-hint strong{color:var(--text);}
+.mv-code-input{width:100%;background:var(--surface2);border:2px solid var(--border2);border-radius:var(--rs);padding:16px 14px;color:var(--text);font-family:monospace;font-size:28px;font-weight:700;text-align:center;letter-spacing:6px;text-transform:uppercase;outline:none;transition:border-color 0.15s;-webkit-appearance:none;caret-color:var(--accent);}
+.mv-code-input:focus{border-color:var(--accent);}
+.mv-code-input::placeholder{color:var(--text3);letter-spacing:2px;font-size:20px;}
+.mv-btn{width:100%;padding:14px;background:var(--accent);color:#0c0f1a;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px;transition:background 0.12s,transform 0.1s;}
+.mv-btn:hover{background:var(--accent2);}
+.mv-btn:active{transform:scale(0.98);}
+.mv-btn:disabled{background:var(--surface2);color:var(--text2);cursor:not-allowed;}
+.mv-note{font-size:11px;color:var(--text3);text-align:center;margin-top:12px;line-height:1.65;}
+.mv-err{background:var(--red-bg);border:1px solid var(--red-bd);border-radius:var(--rs);padding:11px 14px;font-size:13px;color:var(--red);text-align:center;margin-top:12px;display:none;}
+.mv-err.on{display:block;}
+.mv-loading{text-align:center;padding:1.5rem 0;display:none;}
+
 /* ── FULLSCREEN QR ── */
 /* fullscreen styles below */
 
@@ -773,15 +798,66 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
+<!-- ══ MANUAL CODE ENTRY VIEW ══ -->
+<div class="mv" id="mv">
+  <div class="mv-card">
+
+    <!-- Brand -->
+    <div class="mv-brand">
+      <div class="mv-bico"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></div>
+      <span class="mv-bname">Attend<em>IQ</em></span>
+    </div>
+
+    <!-- Code entry state -->
+    <div id="mv-entry">
+      <div class="mv-icon-ring">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="mv-title">Enter Session Code</div>
+      <div class="mv-hint">Ask your lecturer for the <strong>6-character code</strong> shown on the projector screen.</div>
+
+      <input class="mv-code-input" type="text" id="mv-code" placeholder="· · · · · ·"
+        maxlength="8" autocapitalize="characters" autocomplete="off"
+        autocorrect="off" spellcheck="false"
+        oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()"
+        onkeydown="if(event.key==='Enter')mvFindSession()">
+
+      <div class="mv-err" id="mv-err"></div>
+
+      <div class="mv-loading" id="mv-loading">
+        <div class="spin" style="margin:0 auto 8px;"></div>
+        <p style="font-size:13px;color:var(--text2);">Finding your class…</p>
+      </div>
+
+      <button class="mv-btn" id="mv-btn" onclick="mvFindSession()">Find My Class →</button>
+      <p class="mv-note">Code changes every 2 minutes — check the latest code on the projector.</p>
+    </div>
+
+  </div>
+</div>
+
 <!-- ══ FULLSCREEN QR OVERLAY ══ -->
 <div class="fs-overlay" id="fs-overlay">
   <button class="fs-close" onclick="closeFullscreen()">✕ Close (ESC)</button>
   <div class="fs-subject" id="fs-subject">—</div>
   <div id="fs-qrcode"></div>
   <div class="fs-timer">QR refreshes in <b id="fs-timer-sec">120</b>s</div>
-  <div class="fs-code-box">Code (changes every 2 min): <span id="fs-short-code">—</span></div>
-  <div class="fs-url">Can't scan? Go to: <span id="fs-url-short">—</span> and enter the code above</div>
-  <div class="fs-hint">Open phone camera → point at QR → tap the link that appears</div>
+
+  <!-- Can't-scan fallback block — prominently shown on projector -->
+  <div style="text-align:center;margin-top:10px;">
+    <div style="display:inline-block;background:#f8f8f8;border-radius:14px;padding:14px 28px;max-width:560px;width:100%;">
+      <div style="font-size:clamp(13px,1.6vw,18px);color:#555;margin-bottom:6px;font-weight:600;">
+        📵 Can't scan? Type this in your browser:
+      </div>
+      <div style="font-family:monospace;font-size:clamp(14px,1.8vw,22px);color:#111;font-weight:700;letter-spacing:0.5px;word-break:break-all;" id="fs-manual-url">—</div>
+      <div style="margin-top:10px;font-size:clamp(12px,1.4vw,16px);color:#666;">
+        Then enter the code:
+        <span style="font-family:monospace;font-size:clamp(20px,2.8vw,38px);font-weight:900;color:#f5a623;letter-spacing:8px;display:block;margin-top:4px;" id="fs-short-code">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fs-hint" style="margin-top:8px;">Open camera → point at QR → tap link · or type the URL above and enter the code</div>
 </div>
 
 <!-- ══ STUDENT LOOKUP VIEW ══ -->
@@ -975,6 +1051,7 @@ var db; // assigned after Firebase loads
 const urlP = new URLSearchParams(window.location.search);
 const isStudent = urlP.has('t') && urlP.has('s');
 const isLookup  = urlP.has('lookup');
+const isManual  = urlP.has('manual');
 
 function loadApp() {
   if (typeof firebase === 'undefined') {
@@ -998,6 +1075,22 @@ function loadApp() {
       console.warn('Offline persistence not supported in this browser');
     }
   });
+
+  // Manual code-entry portal (?manual=1)
+  if (isManual) {
+    document.getElementById('fb-loading').classList.add('hidden');
+    document.getElementById('mv').classList.add('on');
+    document.title = 'Enter Session Code — AttendIQ';
+    // Pre-fill code from URL if present e.g. ?manual=1&code=X7K2P9
+    var preCode = urlP.get('code');
+    if (preCode) {
+      document.getElementById('mv-code').value = preCode.toUpperCase();
+      mvFindSession();
+    } else {
+      setTimeout(function(){ document.getElementById('mv-code').focus(); }, 300);
+    }
+    return;
+  }
 
   // Student lookup portal
   if (isLookup) {
@@ -2189,10 +2282,11 @@ function openFullscreen() {
   document.getElementById('fs-subject').textContent =
     activeSession.subjectCode + ' — ' + activeSession.subjectName;
   var base = window.location.origin + window.location.pathname;
-  document.getElementById('fs-url-short').textContent =
-    base.replace('https://','').replace('http://','');
-  document.getElementById('fs-short-code').textContent =
-    activeSession.token || '—';
+  // Show the clean ?manual=1 URL for students who can't scan
+  var manualUrl = base + '?manual=1';
+  var manualUrlShort = manualUrl.replace('https://','').replace('http://','');
+  document.getElementById('fs-manual-url').textContent = manualUrlShort;
+  document.getElementById('fs-short-code').textContent = activeSession.token || '—';
 
   // Generate large QR
   var url = window._lastQrUrl ||
@@ -2254,6 +2348,12 @@ function refreshFsIfOpen(token, url) {
   document.getElementById('fs-short-code').textContent = token;
   var scv = document.getElementById('short-code-val');
   if (scv) scv.textContent = token;
+  // Also keep manual URL fresh (it doesn't change but ensure it's set)
+  var manualUrlEl = document.getElementById('fs-manual-url');
+  if (manualUrlEl && manualUrlEl.textContent === '—') {
+    var base = window.location.origin + window.location.pathname;
+    manualUrlEl.textContent = (base + '?manual=1').replace('https://','').replace('http://','');
+  }
   document.getElementById('fs-qrcode').innerHTML = '';
   setTimeout(function() {
     try {
@@ -2436,6 +2536,71 @@ function exportSummary() {
 
   const headers = [['Subject','Student ID','Name','Year','Total Sessions','Attended','Absent','Attendance %','Status','Absent Dates']];
   dlCSV([...headers, ...rows], 'student_summary_' + new Date().toLocaleDateString('en-CA') + '.csv');
+}
+
+// ══════════════════════════════════════════
+//  MANUAL CODE ENTRY (?manual=1)
+// ══════════════════════════════════════════
+function mvFindSession() {
+  var code = (document.getElementById('mv-code').value || '').trim().toUpperCase();
+  if (code.length < 4) {
+    mvShowErr('Please enter the code shown on the projector screen.');
+    return;
+  }
+
+  mvShowErr('');
+  document.getElementById('mv-loading').style.display = '';
+  document.getElementById('mv-btn').disabled = true;
+
+  db.collection('sessions')
+    .where('active', '==', true)
+    .where('token', '==', code)
+    .get()
+    .then(function(snap) {
+      document.getElementById('mv-loading').style.display = 'none';
+      document.getElementById('mv-btn').disabled = false;
+
+      if (snap.empty) {
+        mvShowErr(
+          'No active session found for code “' + code + '”. ' +
+          'The code changes every 2 minutes — check the latest code on the projector and try again.'
+        );
+        return;
+      }
+
+      var doc     = snap.docs[0];
+      var session = doc.data();
+
+      // Transition: hide manual entry card, show attendance form (sv card)
+      document.getElementById('mv').classList.remove('on');
+      document.getElementById('sv').classList.add('on');
+      document.title = 'Mark Attendance — AttendIQ';
+
+      // Build params and use existing initStudentFromManual
+      var params = new URLSearchParams({
+        s:   session.subjectCode  || '',
+        sn:  session.subjectName  || '',
+        t:   session.token        || '',
+        sid: doc.id,
+        l:   session.teacherName  || '',
+        ss:  session.startMs      || Date.now(),
+        tn:  session.teacherName  || ''
+      });
+      initStudentFromManual(params, doc.id, session);
+    })
+    .catch(function(err) {
+      document.getElementById('mv-loading').style.display = 'none';
+      document.getElementById('mv-btn').disabled = false;
+      mvShowErr('Connection error. Check your internet and try again.');
+      console.error('mvFindSession error:', err);
+    });
+}
+
+function mvShowErr(msg) {
+  var el = document.getElementById('mv-err');
+  if (!msg) { el.classList.remove('on'); el.textContent = ''; return; }
+  el.textContent = msg;
+  el.classList.add('on');
 }
 
 // ══════════════════════════════════════════
