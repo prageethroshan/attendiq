@@ -478,6 +478,31 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
         <div>
           <div class="card" style="margin-bottom:14px;">
             <div class="ctitle">Choose Subject</div>
+
+            <!-- Department + Year/Sem filters -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div>
+                <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);display:block;margin-bottom:5px;">Department</label>
+                <select id="pf-dept" onchange="renderPicker()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;transition:border-color 0.15s;">
+                  <option value="">All Departments</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);display:block;margin-bottom:5px;">Year &amp; Semester</label>
+                <select id="pf-year" onchange="renderPicker()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-family:DM Sans,sans-serif;font-size:12px;outline:none;transition:border-color 0.15s;">
+                  <option value="">All Years</option>
+                  <option>Year 1 – Sem 1</option>
+                  <option>Year 1 – Sem 2</option>
+                  <option>Year 2 – Sem 1</option>
+                  <option>Year 2 – Sem 2</option>
+                  <option>Year 3 – Sem 1</option>
+                  <option>Year 3 – Sem 2</option>
+                  <option>Year 4 – Sem 1</option>
+                  <option>Year 4 – Sem 2</option>
+                </select>
+              </div>
+            </div>
+
             <div class="spick-grid" id="spick-grid"><div class="empty" style="padding:1.5rem;">Loading…</div></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="session-options">
               <div>
@@ -1057,6 +1082,9 @@ function showTeacherDashboard() {
   listenAllSessions();
   listenAllScans();
   initEpDefaults();
+  // Pre-select teacher's own department in the session picker after a short delay
+  // (subjects may not be loaded yet; populatePickerDepts handles the real pre-select)
+  setTimeout(function() { populatePickerDepts(); renderPicker(); }, 600);
 }
 
 // ══════════════════════════════════════════
@@ -1209,6 +1237,7 @@ function loadSubjects() {
       .sort(function(a,b) { return (a.code||'').localeCompare(b.code||''); });
     allSubjectsList = subjects; // keep global reference for edit panel
     renderSubjectList();
+    populatePickerDepts();
     renderPicker();
     document.getElementById('s-count').textContent = subjects.length;
   }, function(err) {
@@ -1255,14 +1284,48 @@ function renderSubjectList() {
     </div>`).join('');
 }
 
+function populatePickerDepts() {
+  const sel = document.getElementById('pf-dept');
+  if (!sel) return;
+  const cur = sel.value;
+  // Gather all unique departments from subjects list
+  const depts = [...new Set(subjects.map(s => s.dept).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Departments</option>';
+  depts.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = d;
+    // Auto-select teacher's own department on first load
+    if (!cur && currentTeacher && d === currentTeacher.dept) opt.selected = true;
+    if (cur && d === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
 function renderPicker() {
-  const el = document.getElementById('spick-grid');
-  if (!subjects.length) { el.innerHTML = '<div class="empty" style="padding:1.5rem;">No subjects yet. Add in Subjects tab.</div>'; return; }
-  el.innerHTML = subjects.map(s => `
+  const el       = document.getElementById('spick-grid');
+  const deptFilt = (document.getElementById('pf-dept')?.value  || '').trim();
+  const yearFilt = (document.getElementById('pf-year')?.value  || '').trim();
+
+  if (!subjects.length) {
+    el.innerHTML = '<div class="empty" style="padding:1.5rem;">No subjects yet. Add in Subjects tab.</div>';
+    return;
+  }
+
+  let filtered = subjects;
+  if (deptFilt) filtered = filtered.filter(s => s.dept === deptFilt);
+  if (yearFilt) filtered = filtered.filter(s => s.year === yearFilt);
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty" style="padding:1.5rem;">No subjects match the selected department and year. Try changing the filters above.</div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(s => `
     <div class="spick ${selSubject?.id===s.id?'sel':''}" onclick="pickSubject('${s.id}')">
       <div class="sp-code">${s.code}</div>
       <div class="sp-name">${s.name}</div>
-      <div class="sp-dept">${s.dept} · ${s.time}</div>
+      <div class="sp-dept">${s.year}${s.time ? ' · ' + s.time : ''}</div>
     </div>`).join('');
 }
 
