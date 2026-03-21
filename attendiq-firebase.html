@@ -834,9 +834,9 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 
       <div class="card">
         <div class="filt">
-          <select id="f-subj" onchange="renderLog()"><option value="">All Subjects</option></select>
-          <select id="f-teacher" onchange="renderLog()"><option value="">All Teachers</option></select>
-          <input type="date" id="f-date" onchange="renderLog()">
+          <select id="f-subj" onchange="logPage=0;renderLog()"><option value="">All Subjects</option></select>
+          <select id="f-teacher" onchange="logPage=0;renderLog()"><option value="">All Teachers</option></select>
+          <input type="date" id="f-date" onchange="logPage=0;renderLog()">
           <button class="btn btn-g btn-sm" onclick="clearFilt()">Clear</button>
           <button class="btn btn-p btn-sm" onclick="exportAll()" style="margin-left:auto;">Export CSV</button>
         </div>
@@ -845,6 +845,13 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
             <thead><tr><th>Subject</th><th>Teacher</th><th>Student ID</th><th>Name</th><th>Year</th><th>Date</th><th>Time</th><th>Status</th><th>📍</th><th>Actions</th></tr></thead>
             <tbody id="log-body"><tr><td colspan="10" class="tbl-empty">Loading records…</td></tr></tbody>
           </table>
+        </div>
+        <div id="log-pagination" style="display:none;margin-top:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span id="log-page-info" style="font-size:12px;color:var(--text2);"></span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-g btn-sm" id="log-prev-btn" onclick="logPagePrev()">&#8592; Prev</button>
+            <button class="btn btn-g btn-sm" id="log-next-btn" onclick="logPageNext()">Next &#8594;</button>
+          </div>
         </div>
       </div>
     </div>
@@ -863,7 +870,7 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 
       <div class="card">
         <div class="sum-filters">
-          <select id="sf-subj" onchange="renderSummary()"><option value="">All Subjects</option></select>
+          <select id="sf-subj" onchange="summarySubjectCache={};loadSummaryForSubject(this.value)"><option value="">&mdash; Select a subject &mdash;</option></select>
           <select id="sf-year" onchange="renderSummary()"><option value="">All Years</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
           <select id="sf-status" onchange="renderSummary()">
             <option value="">All Students</option>
@@ -871,7 +878,7 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
             <option value="warn">Below 75% only</option>
             <option value="good">Above 75% only</option>
           </select>
-          <button class="btn btn-g btn-sm" onclick="document.getElementById('sf-subj').value='';document.getElementById('sf-year').value='';document.getElementById('sf-status').value='';renderSummary();">Clear</button>
+          <button class="btn btn-g btn-sm" onclick="document.getElementById('sf-subj').value='';document.getElementById('sf-year').value='';document.getElementById('sf-status').value='';summarySubjectCache={};renderSummary();">Clear</button>
           <button class="btn btn-p btn-sm" onclick="exportSummary()" style="margin-left:auto;">Export CSV</button>
         </div>
         <div class="legend">
@@ -1427,6 +1434,7 @@ let activeSession = null;
 let sessTimer = null;
 let timerSec = 120;
 let allScans = [];
+let mySessionScans = [];
 let unsubScans = null;
 let unsubSessions = null;
 let unsubSubjects = null;
@@ -1495,7 +1503,6 @@ function showTeacherDashboard() {
   loadSubjects();
   preloadSubjectsIfEmpty();
   listenAllSessions();
-  listenAllScans();
   initEpDefaults();
   // Pre-select teacher's own department in the session picker after a short delay
   // (subjects may not be loaded yet; populatePickerDepts handles the real pre-select)
@@ -2226,6 +2233,7 @@ function listenMyScans(sessionId) {
       const scans = snap.docs
         .map(function(d) { return d.data(); })
         .sort(function(a,b) { return (a.time||'').localeCompare(b.time||''); });
+      mySessionScans = scans;
 
       const total   = scans.length;
       const present = scans.filter(function(s){ return s.status==='Present'; }).length;
@@ -2328,6 +2336,8 @@ function listenAllScans() {
 
 // Load a wider date range for the Log / Summary tabs (called on tab switch)
 var allScansExtended = [];
+var summarySubjectCache = {};
+
 function loadAllScansForRange() {
   // Load last 30 days — enough for summaries, still bounded
   var d = new Date();
@@ -2394,13 +2404,19 @@ function renderAllSessions(sessions) {
 // Collapses rapid-fire Firestore snapshot events into one DOM update.
 var _renderLogTimer    = null;
 var _renderSummTimer   = null;
+var logPage = 0;
+var LOG_PAGE_SIZE = 75;
 function scheduleRenderLog() {
   clearTimeout(_renderLogTimer);
   _renderLogTimer = setTimeout(function() { renderLog(); }, 350);
 }
 function scheduleRenderSummary() {
   clearTimeout(_renderSummTimer);
-  _renderSummTimer = setTimeout(function() { refreshSummaryTab(); }, 400);
+  _renderSummTimer = setTimeout(function() {
+    var sfEl = document.getElementById('sf-subj');
+    var subj = sfEl ? sfEl.value : '';
+    if (subj) { summarySubjectCache[subj] = null; loadSummaryForSubject(subj); }
+  }, 400);
 }
 
 // ══════════════════════════════════════════
@@ -2454,49 +2470,68 @@ function updateLogStatsExtended() {
 }
 
 function renderLog() {
-  const sf = document.getElementById('f-subj').value;
-  const tf = document.getElementById('f-teacher').value;
-  const df = document.getElementById('f-date').value;
+  var sf = document.getElementById('f-subj').value;
+  var tf = document.getElementById('f-teacher').value;
+  var df = document.getElementById('f-date').value;
   var src = allScansExtended.length ? allScansExtended : allScans;
-  let rows = src;
-  if (sf) rows = rows.filter(r=>r.subjectCode===sf);
-  if (tf) rows = rows.filter(r=>r.teacherName===tf);
-  if (df) rows = rows.filter(r=>r.date===df);
-  const tbody = document.getElementById('log-body');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="tbl-empty">No records found.</td></tr>'; return; }
-  tbody.innerHTML = rows.map(r => {
-    const dist = r.distMetres ? r.distMetres + 'm' : '';
-    const geoBadge = r.geoVerified === true
-      ? `<span style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;" title="Location verified">📍 ${dist}</span>`
-      : `<span style="color:var(--text3);font-size:11px;">—</span>`;
-    const sn = (r.studentName||''). replace(/'/g,'&#39;');
-    return `<tr>
-      <td><span class="sbadge" style="font-size:10px;">${r.subjectCode}</span></td>
-      <td style="color:var(--text2);font-size:11px;">${r.teacherName||'—'}</td>
-      <td style="font-family:monospace;color:var(--accent);font-size:11px;">${r.studentId}</td>
-      <td style="font-weight:500;">${r.studentName}</td>
-      <td style="color:var(--text2);">${r.year}</td>
-      <td style="color:var(--text2);">${r.date}</td>
-      <td style="color:var(--text2);">${r.time}</td>
-      <td>
-        <select class="status-sel" onchange="changeStatus('${r.id}', this.value, this)" title="Change status">
-          <option value="Present" ${r.status==='Present'?'selected':''}>&#x2713; Present</option>
-          <option value="Late" ${r.status==='Late'?'selected':''}>&#x23F1; Late</option>
-          <option value="Absent" ${r.status==='Absent'?'selected':''}>&#x2715; Absent</option>
-        </select>
-      </td>
-      <td>${geoBadge}</td>
-      <td class="act-cell">
-        <button class="act-btn act-del" onclick="promptRemove('${r.id}','${sn}','${r.studentId}')">&#x2715; Remove</button>
-      </td>
-    </tr>`;
+  var rows = src;
+  if (sf) rows = rows.filter(function(r){ return r.subjectCode===sf; });
+  if (tf) rows = rows.filter(function(r){ return r.teacherName===tf; });
+  if (df) rows = rows.filter(function(r){ return r.date===df; });
+  var tbody = document.getElementById('log-body');
+  var pgEl  = document.getElementById('log-pagination');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="tbl-empty">No records found.</td></tr>';
+    pgEl.style.display = 'none'; return;
+  }
+  var totalRows  = rows.length;
+  var totalPages = Math.ceil(totalRows / LOG_PAGE_SIZE);
+  if (logPage >= totalPages) logPage = Math.max(0, totalPages - 1);
+  var start    = logPage * LOG_PAGE_SIZE;
+  var pageRows = rows.slice(start, start + LOG_PAGE_SIZE);
+  tbody.innerHTML = pageRows.map(function(r) {
+    var dist = r.distMetres ? r.distMetres + 'm' : '';
+    var geo  = r.geoVerified === true
+      ? '<span style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;" title="Location verified">📍 ' + dist + '</span>'
+      : '<span style="color:var(--text3);font-size:11px;">&mdash;</span>';
+    var sn = (r.studentName||'').replace(/'/g,'&#39;');
+    var sel =
+      '<select class="status-sel" onchange="changeStatus(&#39;'+r.id+'&#39;,this.value,this)" title="Change status">' +
+      '<option value="Present"'+(r.status==='Present'?' selected':'')+'>&#x2713; Present</option>' +
+      '<option value="Late"'   +(r.status==='Late'   ?' selected':'')+'>&#x23F1; Late</option>' +
+      '<option value="Absent"' +(r.status==='Absent' ?' selected':'')+'>&#x2715; Absent</option>' +
+      '</select>';
+    return '<tr>' +
+      '<td><span class="sbadge" style="font-size:10px;">'+r.subjectCode+'</span></td>' +
+      '<td style="color:var(--text2);font-size:11px;">'+(r.teacherName||'&mdash;')+'</td>' +
+      '<td style="font-family:monospace;color:var(--accent);font-size:11px;">'+r.studentId+'</td>' +
+      '<td style="font-weight:500;">'+r.studentName+'</td>' +
+      '<td style="color:var(--text2);">'+r.year+'</td>' +
+      '<td style="color:var(--text2);">'+r.date+'</td>' +
+      '<td style="color:var(--text2);">'+r.time+'</td>' +
+      '<td>'+sel+'</td>' +
+      '<td>'+geo+'</td>' +
+      '<td class="act-cell"><button class="act-btn act-del" onclick="promptRemove(&#39;'+r.id+'&#39;,&#39;'+sn+'&#39;,&#39;'+r.studentId+'&#39;)">&#x2715; Remove</button></td>' +
+      '</tr>';
   }).join('');
+  document.getElementById('log-page-info').textContent =
+    'Showing '+(start+1)+'\u2013'+Math.min(start+LOG_PAGE_SIZE,totalRows)+' of '+totalRows+' records';
+  document.getElementById('log-prev-btn').disabled = (logPage === 0);
+  document.getElementById('log-next-btn').disabled = (logPage >= totalPages-1);
+  pgEl.style.display = totalPages > 1 ? 'flex' : 'none';
+}
+
+function logPagePrev() { if (logPage > 0) { logPage--; renderLog(); } }
+function logPageNext() {
+  var src = allScansExtended.length ? allScansExtended : allScans;
+  if (logPage < Math.ceil(src.length/LOG_PAGE_SIZE)-1) { logPage++; renderLog(); }
 }
 
 function clearFilt() {
   document.getElementById('f-subj').value='';
   document.getElementById('f-teacher').value='';
   document.getElementById('f-date').value='';
+  logPage = 0;
   renderLog();
 }
 
@@ -2504,7 +2539,7 @@ function clearFilt() {
 //  EXPORT
 // ══════════════════════════════════════════
 function exportMyCSV() {
-  const scans = allScans.filter(s=>activeSession && s.sessionId===activeSession.id);
+  const scans = mySessionScans;
   if (!scans.length) { notify('No data','err'); return; }
   const rows=[['Student ID','Name','Year','Date','Time','Subject','Teacher','Status']];
   scans.forEach(s=>rows.push([s.studentId,s.studentName,s.year,s.date,s.time,s.subjectCode,s.teacherName,s.status]));
@@ -3012,15 +3047,31 @@ const _origTeardown = teardownSessionUI;
 //  STUDENT SUMMARY
 // ══════════════════════════════════════════
 function refreshSummaryTab() {
-  // Populate subject filter with subjects that have attendance data
-  const sf = document.getElementById('sf-subj');
-  const cur = sf.value;
-  sf.innerHTML = '<option value="">All Subjects</option>';
-  var summSrc2 = allScansExtended.length ? allScansExtended : allScans;
-  [...new Set(summSrc2.map(s => s.subjectCode))].sort().forEach(code => {
-    sf.innerHTML += `<option value="${code}" ${cur===code?'selected':''}>${code}</option>`;
+  var sf  = document.getElementById('sf-subj');
+  var cur = sf.value;
+  sf.innerHTML = '<option value="">&mdash; Select a subject &mdash;</option>';
+  var srcList = (typeof allSubjectsList !== 'undefined' && allSubjectsList.length) ? allSubjectsList : subjects;
+  srcList.slice().sort(function(a,b){ return a.code.localeCompare(b.code); }).forEach(function(s) {
+    sf.innerHTML += '<option value="'+s.code+'"'+(cur===s.code?' selected':'')+'>'+s.code+' &mdash; '+s.name+'</option>';
   });
-  renderSummary();
+  if (cur) { loadSummaryForSubject(cur); } else { renderSummary(); }
+}
+
+function loadSummaryForSubject(subjectCode) {
+  if (!subjectCode) { renderSummary(); return; }
+  if (summarySubjectCache[subjectCode]) { renderSummary(); return; }
+  document.getElementById('sum-body').innerHTML =
+    '<tr><td colspan="9" class="sum-empty">Loading data for '+subjectCode+'&hellip;</td></tr>';
+  db.collection('attendance').where('subjectCode','==',subjectCode).get()
+    .then(function(snap) {
+      summarySubjectCache[subjectCode] = snap.docs.map(function(d){ return {id:d.id,...d.data()}; });
+      renderSummary();
+    })
+    .catch(function(err) {
+      document.getElementById('sum-body').innerHTML =
+        '<tr><td colspan="9" class="sum-empty">Error loading data. Please try again.</td></tr>';
+      console.error('loadSummaryForSubject:', err);
+    });
 }
 
 function renderSummary() {
@@ -3028,8 +3079,23 @@ function renderSummary() {
   const yearFilter   = document.getElementById('sf-year').value;
   const statusFilter = document.getElementById('sf-status').value;
 
-  // Use extended 30-day dataset if loaded, otherwise fall back to today
-  const summSrc = (allScansExtended && allScansExtended.length) ? allScansExtended : allScans;
+  if (!subjFilter) {
+    ['sum-total','sum-good','sum-warn','sum-danger'].forEach(function(id){
+      document.getElementById(id).textContent = '\u2014';
+    });
+    document.getElementById('sum-body').innerHTML =
+      '<tr><td colspan="9" class="sum-empty">Select a subject above to load the attendance summary.</td></tr>';
+    return;
+  }
+
+  var summSrc;
+  if (summarySubjectCache[subjFilter]) {
+    summSrc = summarySubjectCache[subjFilter];
+  } else if (allScansExtended && allScansExtended.length) {
+    summSrc = allScansExtended.filter(function(r){ return r.subjectCode===subjFilter; });
+  } else {
+    summSrc = allScans.filter(function(r){ return r.subjectCode===subjFilter; });
+  }
 
   const sessionsBySubject = {};
   const sessionDateMap = {};
@@ -3138,8 +3204,11 @@ function renderSummary() {
 function exportSummary() {
   const subjFilter = document.getElementById('sf-subj').value;
   const yearFilter = document.getElementById('sf-year').value;
-
-  const expSrc = (allScansExtended && allScansExtended.length) ? allScansExtended : allScans;
+  if (!subjFilter) { notify('Select a subject before exporting', 'err'); return; }
+  const expSrc = summarySubjectCache[subjFilter] ||
+    (allScansExtended.length
+      ? allScansExtended.filter(function(r){ return r.subjectCode===subjFilter; })
+      : allScans.filter(function(r){ return r.subjectCode===subjFilter; }));
   const sessionsBySubject = {};
   const sessionDateMap = {};
   expSrc.forEach(r => {
