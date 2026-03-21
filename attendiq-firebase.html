@@ -140,8 +140,8 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 .tbl tr:hover td{background:var(--surface2);}
 .tbl-empty{text-align:center;color:var(--text3);padding:2rem;font-size:12px;}
 
-.bp{background:var(--green-bg);color:var(--green);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;}
-.bl{background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;}
+.bp{background:var(--green-bg);color:var(--green);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;}
+.bl{background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;}
 
 .scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:14px;}
 .slbl{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:600;margin-bottom:5px;}
@@ -693,10 +693,12 @@ body{font-family:DM Sans,sans-serif;background:var(--bg);color:var(--text);min-h
 
             <!-- Recent 10 scans only — keeps DOM fast for 200+ students -->
             <div class="recent-title">Recent scans (last 10)</div>
+            <div style="overflow-x:auto;">
             <table class="tbl">
               <thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Year</th><th>Time</th><th>Status</th></tr></thead>
               <tbody id="scan-body"><tr><td colspan="6" class="tbl-empty">Waiting for students to scan…</td></tr></tbody>
             </table>
+            </div>
           </div>
         </div>
         <div>
