@@ -1,26 +1,47 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import NewSessionModal from '@/components/NewSessionModal'
-
-type Session = {
-  id: string
-  subject_code: string
-  subject_name: string
-  short_code: string
-}
+import SessionCard from '@/components/SessionCard'
+import QrPanel from '@/components/QrPanel'
+import type { Session } from '@/lib/supabase/types'
 
 export default function SessionsPage() {
   const [showModal, setShowModal] = useState(false)
-  const [activeSessions, setActiveSessions] = useState<Session[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [loadingSessions, setLoadingSessions] = useState(true)
+  const [qrSession, setQrSession] = useState<Session | null>(null)
+
+  // Load active sessions on mount
+  useEffect(() => {
+    async function load() {
+      const res = await fetch('/api/sessions?filter=active')
+      if (res.ok) {
+        const data = await res.json()
+        setSessions(data)
+      }
+      setLoadingSessions(false)
+    }
+    load()
+  }, [])
 
   function handleCreated(session: Session) {
-    setActiveSessions(prev => [session, ...prev])
+    setSessions(prev => [session, ...prev])
     setShowModal(false)
+  }
+
+  function handleEnded(id: string) {
+    setSessions(prev => prev.filter(s => s.id !== id))
+    if (qrSession?.id === id) setQrSession(null)
+  }
+
+  function handleOpen(session: Session) {
+    setQrSession(session)
   }
 
   return (
     <>
+      {/* ── New Session Modal ── */}
       {showModal && (
         <NewSessionModal
           onClose={() => setShowModal(false)}
@@ -28,6 +49,38 @@ export default function SessionsPage() {
         />
       )}
 
+      {/* ── QR Panel Modal ── */}
+      {qrSession && (
+        <>
+          <div
+            onClick={() => setQrSession(null)}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 100,
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '100%', maxWidth: 420,
+            zIndex: 101,
+            padding: '0 16px',
+          }}>
+            <QrPanel
+              session={qrSession}
+              onSessionEnded={() => {
+                handleEnded(qrSession.id)
+                setQrSession(null)
+              }}
+            />
+          </div>
+        </>
+      )}
+
+      {/* ── Page content ── */}
       <div>
         {/* Page header */}
         <div style={{
@@ -41,46 +94,56 @@ export default function SessionsPage() {
               Sessions
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-              Create and manage your attendance sessions
+              {sessions.length > 0
+                ? `${sessions.length} active session${sessions.length > 1 ? 's' : ''}`
+                : 'No active sessions'}
             </p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="btn-primary"
-            style={{ width: 'auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{
+              width: 'auto', padding: '10px 20px',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             New Session
           </button>
         </div>
 
-        {/* Active sessions */}
-        {activeSessions.length > 0 && (
-          <div style={{ marginBottom: 12 }}>
-            {activeSessions.map(session => (
-              <div key={session.id} className="glass" style={{
-                padding: 20,
-                marginBottom: 12,
-                borderColor: 'var(--em-border)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className="badge-em">● Live</span>
-                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>
-                    {session.subject_code} — {session.subject_name}
-                  </span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 13, marginLeft: 'auto' }}>
-                    Code: <strong style={{ color: 'var(--em)', fontFamily: 'monospace', letterSpacing: '0.15em' }}>{session.short_code}</strong>
-                  </span>
-                </div>
-              </div>
+        {/* Loading skeletons */}
+        {loadingSessions && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[1, 2].map(i => (
+              <div key={i} className="glass" style={{
+                padding: 20, height: 160,
+                background: 'rgba(255,255,255,0.02)',
+                animation: 'shimmer 1.5s infinite',
+              }}/>
+            ))}
+          </div>
+        )}
+
+        {/* Session cards */}
+        {!loadingSessions && sessions.length > 0 && (
+          <div>
+            {sessions.map(session => (
+              <SessionCard
+                key={session.id}
+                session={session}
+                onEnded={handleEnded}
+                onOpen={handleOpen}
+              />
             ))}
           </div>
         )}
 
         {/* Empty state */}
-        {activeSessions.length === 0 && (
+        {!loadingSessions && sessions.length === 0 && (
           <div className="glass" style={{ padding: 48, textAlign: 'center' }}>
             <div style={{
               width: 56, height: 56,
@@ -101,7 +164,7 @@ export default function SessionsPage() {
               No active sessions
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 300, margin: '0 auto 20px' }}>
-              Click <strong style={{ color: 'var(--text)' }}>New Session</strong> to start taking attendance for a class.
+              Click <strong style={{ color: 'var(--text)' }}>New Session</strong> to start taking attendance.
             </p>
             <button
               onClick={() => setShowModal(true)}
@@ -113,6 +176,17 @@ export default function SessionsPage() {
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes shimmer {
+          0%, 100% { opacity: 0.4; }
+          50%       { opacity: 0.7; }
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
+        }
+      `}</style>
     </>
   )
 }

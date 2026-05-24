@@ -1,14 +1,10 @@
-// Safe alphabet — no ambiguous chars (0/O, 1/I/L)
 const SAFE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
 export function generateToken(): string {
-  // 32-char hex token embedded in QR code URL
-  // crypto.randomUUID() is available in Node.js 14.17+ and all modern browsers
   return crypto.randomUUID().replace(/-/g, '')
 }
 
 export function generateShortCode(): string {
-  // 6-char human-typeable code shown on projector
   const bytes = crypto.getRandomValues(new Uint8Array(6))
   return Array.from(bytes)
     .map(b => SAFE_CHARS[b % SAFE_CHARS.length])
@@ -16,6 +12,14 @@ export function generateShortCode(): string {
 }
 
 export function buildSessionUrl(token: string): string {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+  // In browser context use window.location.origin
+  // In server context use NEXT_PUBLIC_BASE_URL
+  const base =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000')
   return `${base}/session/${token}`
 }
+
+export const QR_ROTATION_MS = 2 * 60 * 1000  // 2 minutes
+export const QR_WARNING_MS = 20 * 1000       // warn at 20 seconds left

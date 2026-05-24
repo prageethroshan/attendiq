@@ -64,10 +64,11 @@ export default function DashboardNav() {
             fontWeight: 500,
             textDecoration: 'none',
             transition: 'all 0.15s',
-            border: '1px solid transparent',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: isActive(tab.href) ? 'var(--em-border)' : 'transparent',
             ...(isActive(tab.href) ? {
               background: 'var(--em-glow)',
-              borderColor: 'var(--em-border)',
               color: 'var(--em)',
             } : {
               color: 'var(--text-muted)',

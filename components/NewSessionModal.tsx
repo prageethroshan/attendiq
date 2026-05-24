@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Session } from '@/lib/supabase/types'
 
 const SUBJECT_GROUPS = [
   {
@@ -107,16 +108,9 @@ const DURATIONS = [
   { label: '3 hours', value: 180 },
 ]
 
-type CreatedSession = {
-  id?: string
-  subject_code?: string
-  subject_name?: string
-  short_code?: string
-}
-
 interface Props {
   onClose: () => void
-  onCreated: (session: CreatedSession) => void
+  onCreated: (session: Session) => void
 }
 
 export default function NewSessionModal({ onClose, onCreated }: Props) {
