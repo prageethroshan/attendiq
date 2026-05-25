@@ -20,7 +20,12 @@ export default function QrPanel({ session }: Props) {
 
   const [scanCount, setScanCount] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [manualUrl, setManualUrl] = useState('/manual')
   const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setManualUrl(`${window.location.origin}/manual`)
+  }, [])
 
   // ── Live scan counter via Supabase Realtime ──
   useEffect(() => {
@@ -171,7 +176,7 @@ export default function QrPanel({ session }: Props) {
         {/* Short code */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>
-            OR TYPE THIS CODE AT attendiq.vercel.app/manual
+            OR TYPE THIS CODE AT {manualUrl}
           </div>
           <div style={{
             color: 'var(--em)',
