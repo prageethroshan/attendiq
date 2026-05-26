@@ -145,7 +145,10 @@ export async function GET(req: Request) {
 
     let query = supabase
       .from('sessions')
-      .select('*')
+      .select(`
+        *,
+        attendance_records(count)
+      `)
       .eq('teacher_id', user.id)
       .order('created_at', { ascending: false })
 
