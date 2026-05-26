@@ -202,7 +202,7 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.6)',
+          background: 'rgba(0,0,0,0.72)',
           backdropFilter: 'blur(4px)',
           zIndex: 100,
         }}
@@ -217,7 +217,15 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
         zIndex: 101,
         padding: '0 16px',
       }}>
-        <div className="glass" style={{ padding: 28 }}>
+        <div
+          className="glass"
+          style={{
+            padding: 28,
+            background: 'rgba(7, 20, 16, 0.96)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.75)',
+          }}
+        >
 
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>

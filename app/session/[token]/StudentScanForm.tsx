@@ -183,6 +183,13 @@ export default function StudentScanForm({
               </div>
             ))}
           </div>
+
+          <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 12, marginTop: 16 }}>
+            View your full attendance record at{' '}
+            <a href="/lookup" style={{ color: 'var(--em)', textDecoration: 'none' }}>
+              /lookup
+            </a>
+          </p>
         </div>
       </div>
     )
@@ -353,6 +360,15 @@ export default function StudentScanForm({
 
         <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 12, marginTop: 12 }}>
           Works on any phone - No app needed
+        </p>
+        <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 12, marginTop: 6 }}>
+          Check your attendance at{' '}
+          <a
+            href="/lookup"
+            style={{ color: 'var(--em)', textDecoration: 'none' }}
+          >
+            /lookup
+          </a>
         </p>
       </div>
 
