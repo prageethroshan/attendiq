@@ -73,6 +73,7 @@ export default function StudentScanForm({
 
   async function handleSubmit() {
     setErrorMsg('')
+    setFormState('idle')
 
     if (!studentId.trim()) {
       setErrorMsg('Please enter your Student ID.')
@@ -332,7 +333,10 @@ export default function StudentScanForm({
         )}
 
         <button
-          onClick={handleSubmit}
+          onClick={() => {
+            if (formState === 'error') setFormState('idle')
+            handleSubmit()
+          }}
           disabled={formState === 'submitting'}
           className="btn-primary"
         >
@@ -344,7 +348,7 @@ export default function StudentScanForm({
               </svg>
               Submitting...
             </span>
-          ) : 'Mark My Attendance ->'}
+          ) : formState === 'error' ? 'Try Again ->' : 'Mark My Attendance ->'}
         </button>
 
         <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 12, marginTop: 12 }}>
