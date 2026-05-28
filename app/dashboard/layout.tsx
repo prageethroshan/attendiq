@@ -13,6 +13,16 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin =
+    profile?.role === 'admin' ||
+    user.user_metadata?.role === 'admin'
+
   const teacherName = user.user_metadata?.full_name ?? user.email ?? 'Teacher'
   const avatarLetter = teacherName.charAt(0).toUpperCase()
 
@@ -56,7 +66,7 @@ export default async function DashboardLayout({
           </div>
 
           {/* Centre tabs */}
-          <DashboardNav />
+          <DashboardNav showAdminTabs={isAdmin} />
 
           {/* Right — avatar + name + logout */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
