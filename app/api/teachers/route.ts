@@ -29,17 +29,22 @@ async function requireAdmin() {
 
 export async function GET() {
   try {
-    const admin = await requireAdmin()
-    if (admin.error) return admin.error
+    const supabase = await createServerSupabaseClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
+    }
 
     const service = createServiceSupabaseClient()
+
     const { data, error } = await service
       .from('profiles')
       .select('*')
-      .eq('role', 'teacher')
       .order('created_at', { ascending: false })
 
     if (error) {
+      console.error('GET /api/teachers error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
