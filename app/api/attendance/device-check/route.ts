@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceSupabaseClient } from '@/lib/supabase/service'
 
 export async function POST(req: Request) {
   try {
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ blocked: false })
     }
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceSupabaseClient()
 
     const { data } = await supabase
       .from('attendance_records')

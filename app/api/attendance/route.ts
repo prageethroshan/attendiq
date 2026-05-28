@@ -47,6 +47,13 @@ export async function POST(req: Request) {
       )
     }
 
+    if (!deviceFp) {
+      return NextResponse.json(
+        { error: 'Device verification failed. Please refresh and try again.' },
+        { status: 400 }
+      )
+    }
+
     const supabase = await createServerSupabaseClient()
 
     const { data: session } = await supabase
@@ -93,6 +100,7 @@ export async function POST(req: Request) {
     }
 
     const normalisedStudentId = studentId.trim().toUpperCase()
+    const service = createServiceSupabaseClient()
 
     if (session.enrolled_ids && session.enrolled_ids.length > 0) {
       if (!session.enrolled_ids.includes(normalisedStudentId)) {
@@ -103,7 +111,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await service
       .from('attendance_records')
       .select('id, marked_at')
       .eq('session_id', sessionId)
@@ -121,25 +129,22 @@ export async function POST(req: Request) {
       )
     }
 
-    if (deviceFp) {
-      const { data: sameDevice } = await supabase
-        .from('attendance_records')
-        .select('student_id')
-        .eq('session_id', sessionId)
-        .eq('device_fp', deviceFp)
-        .neq('student_id', normalisedStudentId)
-        .limit(1)
-        .maybeSingle()
+    const { data: sameDevice } = await service
+      .from('attendance_records')
+      .select('student_id')
+      .eq('session_id', sessionId)
+      .eq('device_fp', deviceFp)
+      .limit(1)
+      .maybeSingle()
 
-      if (sameDevice) {
-        return NextResponse.json(
-          {
-            error: 'Attendance has already been marked from this device for this session. Each device can only be used once per session.',
-            code: 'DEVICE_BLOCKED',
-          },
-          { status: 403 }
-        )
-      }
+    if (sameDevice) {
+      return NextResponse.json(
+        {
+          error: 'Attendance has already been marked from this device for this session. Each device can only be used once per session.',
+          code: 'DEVICE_BLOCKED',
+        },
+        { status: 403 }
+      )
     }
 
     let geoVerified: boolean | null = null
@@ -158,7 +163,6 @@ export async function POST(req: Request) {
     }
 
     const status = 'Present'
-    const service = createServiceSupabaseClient()
 
     const { data: record, error: insertError } = await service
       .from('attendance_records')
@@ -180,7 +184,10 @@ export async function POST(req: Request) {
     if (insertError) {
       if (insertError.code === '23505') {
         return NextResponse.json(
-          { error: 'Attendance already marked for this session.' },
+          {
+            error: 'Attendance has already been marked from this device for this session. Each device can only be used once per session.',
+            code: 'DEVICE_BLOCKED',
+          },
           { status: 409 }
         )
       }
