@@ -121,7 +121,6 @@ export async function POST(req: Request) {
       )
     }
 
-    let deviceFlagged = false
     if (deviceFp) {
       const { data: sameDevice } = await supabase
         .from('attendance_records')
@@ -132,7 +131,15 @@ export async function POST(req: Request) {
         .limit(1)
         .maybeSingle()
 
-      if (sameDevice) deviceFlagged = true
+      if (sameDevice) {
+        return NextResponse.json(
+          {
+            error: 'Attendance has already been marked from this device for this session. Each device can only be used once per session.',
+            code: 'DEVICE_BLOCKED',
+          },
+          { status: 403 }
+        )
+      }
     }
 
     let geoVerified: boolean | null = null
@@ -204,7 +211,6 @@ export async function POST(req: Request) {
       status: record.status,
       geoVerified: record.geo_verified,
       distMetres: record.dist_metres,
-      deviceFlagged,
       markedAt: record.marked_at,
     })
 

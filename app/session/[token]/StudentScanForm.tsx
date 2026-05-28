@@ -44,6 +44,8 @@ export default function StudentScanForm({
   const [result, setResult] = useState<any>(null)
 
   const [deviceFp, setDeviceFp] = useState('')
+  const [deviceBlocked, setDeviceBlocked] = useState(false)
+  const [deviceCheckDone, setDeviceCheckDone] = useState(false)
   const [geoStatus, setGeoStatus] = useState<GeoStatus>(geoConfig ? 'pending' : 'skipped')
   const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number } | null>(null)
 
@@ -57,6 +59,22 @@ export default function StudentScanForm({
     ].join('|')
     setDeviceFp(hashFingerprint(raw))
   }, [])
+
+  useEffect(() => {
+    if (!deviceFp || !sessionId) return
+
+    fetch('/api/attendance/device-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, deviceFp }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        setDeviceBlocked(data.blocked ?? false)
+        setDeviceCheckDone(true)
+      })
+      .catch(() => setDeviceCheckDone(true))
+  }, [deviceFp, sessionId])
 
   useEffect(() => {
     if (!geoConfig) return
@@ -113,7 +131,11 @@ export default function StudentScanForm({
 
     if (!res.ok) {
       setFormState('error')
-      setErrorMsg(data.error ?? 'Something went wrong. Please try again.')
+      if (data.code === 'DEVICE_BLOCKED') {
+        setDeviceBlocked(true)
+      } else {
+        setErrorMsg(data.error ?? 'Something went wrong. Please try again.')
+      }
       return
     }
 
@@ -189,6 +211,59 @@ export default function StudentScanForm({
             <a href="/lookup" style={{ color: 'var(--em)', textDecoration: 'none' }}>
               /lookup
             </a>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (deviceCheckDone && deviceBlocked) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+      }}>
+        <div className="glass" style={{ padding: 32, maxWidth: 380, width: '100%', textAlign: 'center' }}>
+          <div style={{
+            width: 60, height: 60,
+            borderRadius: '50%',
+            background: 'rgba(248,113,113,0.1)',
+            border: '1px solid rgba(248,113,113,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px',
+          }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+
+          <h1 style={{ color: 'var(--danger)', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
+            Device Already Used
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+            Attendance has already been marked from this device for this session.
+            Each device can only submit once per session.
+          </p>
+
+          <div style={{
+            background: 'rgba(248,113,113,0.06)',
+            border: '1px solid rgba(248,113,113,0.15)',
+            borderRadius: 10,
+            padding: '10px 14px',
+            fontSize: 13,
+            color: 'var(--text-muted)',
+          }}>
+            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{subjectCode}</span>
+            {' - '}{subjectName}
+            <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-dim)' }}>
+              {teacherName}
+            </div>
+          </div>
+
+          <p style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 16 }}>
+            If you believe this is an error, speak to your lecturer directly.
           </p>
         </div>
       </div>
