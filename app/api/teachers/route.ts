@@ -10,7 +10,8 @@ async function requireAdmin() {
     return { error: NextResponse.json({ error: 'Unauthorised.' }, { status: 401 }) }
   }
 
-  const { data: profile } = await supabase
+  const service = createServiceSupabaseClient()
+  const { data: profile } = await service
     .from('profiles')
     .select('role')
     .eq('id', user.id)
