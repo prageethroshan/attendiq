@@ -292,9 +292,12 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
 
               {showAddSubject && (
                 <div style={{
-                  background: 'var(--em-glow)',
-                  border: '1px solid var(--em-border)',
-                  borderRadius: 12, padding: 16, marginBottom: 10,
+                  background: '#102820',
+                  border: '1px solid rgba(255,255,255,0.16)',
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 10,
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
                 }}>
                   <p style={{ color: 'var(--em)', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
                     New subject will be saved to your subject list permanently.
@@ -310,7 +313,7 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
                         placeholder="e.g. ACF 43013"
                         maxLength={20}
                         className="input"
-                        style={{ fontSize: 13 }}
+                        style={{ fontSize: 13, background: '#0b1e18' }}
                       />
                     </div>
                     <div style={{ flex: 1 }}>
@@ -321,7 +324,7 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
                         onChange={e => setNewName(e.target.value)}
                         placeholder="e.g. Advanced Corporate Law"
                         className="input"
-                        style={{ fontSize: 13 }}
+                        style={{ fontSize: 13, background: '#0b1e18' }}
                       />
                     </div>
                   </div>
@@ -333,7 +336,7 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
                         value={newYear}
                         onChange={e => setNewYear(e.target.value)}
                         className="input"
-                        style={{ fontSize: 13, cursor: 'pointer' }}
+                        style={{ fontSize: 13, cursor: 'pointer', background: '#0b1e18' }}
                       >
                         <option value="">-</option>
                         <option value="1">Year 1</option>
@@ -348,7 +351,7 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
                         value={newSemester}
                         onChange={e => setNewSemester(e.target.value)}
                         className="input"
-                        style={{ fontSize: 13, cursor: 'pointer' }}
+                        style={{ fontSize: 13, cursor: 'pointer', background: '#0b1e18' }}
                       >
                         <option value="">-</option>
                         <option value="1">Semester 1</option>

@@ -161,8 +161,8 @@ export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Pro
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(0,0,0,0.78)',
+          backdropFilter: 'blur(6px)',
           zIndex: 100,
         }}
       />
@@ -177,7 +177,13 @@ export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Pro
         zIndex: 101,
         padding: '0 16px',
       }}>
-        <div className="glass" style={{ padding: 28 }}>
+        <div style={{
+          padding: 28,
+          background: '#0b1e18',
+          border: '1px solid rgba(255,255,255,0.16)',
+          borderRadius: 16,
+          boxShadow: '0 24px 80px rgba(0,0,0,0.75)',
+        }}>
           <div style={{
             display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', marginBottom: 22,
@@ -270,8 +276,8 @@ export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Pro
               )}
 
               <div style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--border)',
+                background: '#102820',
+                border: '1px solid rgba(255,255,255,0.12)',
                 borderRadius: 10, padding: 14, marginBottom: 14,
               }}>
                 <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
@@ -368,14 +374,15 @@ ACF/2025/002,Nimali Fernando,1,Accountancy & Finance`}
               )}
 
               <div style={{
-                border: '1px solid var(--border)',
+                background: '#102820',
+                border: '1px solid rgba(255,255,255,0.12)',
                 borderRadius: 10, overflow: 'hidden',
                 marginBottom: 16, maxHeight: 240,
                 overflowY: 'auto',
               }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <tr style={{ background: '#143428' }}>
                       {['Student ID', 'Name', 'Year', 'Department'].map(header => (
                         <th key={header} style={{
                           padding: '8px 12px', textAlign: 'left',
@@ -384,7 +391,7 @@ ACF/2025/002,Nimali Fernando,1,Accountancy & Finance`}
                           textTransform: 'uppercase',
                           borderBottom: '1px solid var(--border)',
                           position: 'sticky', top: 0,
-                          background: 'var(--surface)',
+                          background: '#143428',
                         }}>
                           {header}
                         </th>
