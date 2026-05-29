@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { exportAttendanceXLSX, exportSubjectRegisterXLSX } from '@/lib/export'
 
 interface AttendanceRow {
   id: string
@@ -38,6 +39,7 @@ export default function LogPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [showExportMenu, setShowExportMenu] = useState(false)
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -71,37 +73,6 @@ export default function LogPage() {
     setPage(1)
   }, [selectedSession, searchId])
 
-  function exportCSV() {
-    if (records.length === 0) return
-    const headers = [
-      'Student ID', 'Name', 'Year', 'Department',
-      'Subject Code', 'Subject Name', 'Status',
-      'Geo Verified', 'Distance (m)', 'Marked At',
-    ]
-    const rows = records.map(r => [
-      r.student_id,
-      r.student_name,
-      r.year,
-      r.department ?? '',
-      r.sessions?.subject_code ?? '',
-      r.sessions?.subject_name ?? '',
-      r.status,
-      r.geo_verified === null ? 'N/A' : r.geo_verified ? 'Yes' : 'No',
-      r.dist_metres ?? '',
-      new Date(r.marked_at).toLocaleString('en-LK'),
-    ])
-    const csv = [headers, ...rows]
-      .map(row => row.map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))
-      .join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `attendiq-log-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   function isFlagged(r: AttendanceRow) {
     return r.geo_verified === false
   }
@@ -121,19 +92,118 @@ export default function LogPage() {
             {total > 0 ? `${total} record${total !== 1 ? 's' : ''}` : 'No records yet'}
           </p>
         </div>
-        <button
-          onClick={exportCSV}
-          disabled={records.length === 0}
-          className="btn-ghost"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Export CSV
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowExportMenu(prev => !prev)}
+            disabled={records.length === 0}
+            className="btn-ghost"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <polyline points="8 13 12 17 16 13"/>
+              <line x1="12" y1="17" x2="12" y2="7"/>
+            </svg>
+            Export
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          {showExportMenu && (
+            <>
+              <div
+                onClick={() => setShowExportMenu(false)}
+                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+              />
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: 6,
+                zIndex: 20,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                overflow: 'hidden',
+                minWidth: 220,
+                boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
+              }}>
+                <button
+                  onClick={() => {
+                    exportAttendanceXLSX(records)
+                    setShowExportMenu(false)
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '11px 16px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    borderBottom: '1px solid var(--border)',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={event => { event.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                  onMouseLeave={event => { event.currentTarget.style.background = 'none' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--em)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <div>
+                    <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
+                      Full Attendance Log
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
+                      All records - Student summary - Flagged
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setShowExportMenu(false)
+                    await exportSubjectRegisterXLSX()
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '11px 16px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={event => { event.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                  onMouseLeave={event => { event.currentTarget.style.background = 'none' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--em)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="3" y1="15" x2="21" y2="15"/>
+                    <line x1="9" y1="3" x2="9" y2="21"/>
+                  </svg>
+                  <div>
+                    <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
+                      Subject Register
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
+                      One sheet per subject - Students x sessions grid
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{

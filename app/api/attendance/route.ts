@@ -243,7 +243,10 @@ export async function GET(req: Request) {
     const sessionId = searchParams.get('session_id')
     const studentId = searchParams.get('student_id')
     const page = parseInt(searchParams.get('page') ?? '1')
-    const pageSize = 50
+    const pageSizeParam = parseInt(searchParams.get('pageSize') ?? '50')
+    const pageSize = Number.isFinite(pageSizeParam)
+      ? Math.min(Math.max(pageSizeParam, 1), 10000)
+      : 50
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 

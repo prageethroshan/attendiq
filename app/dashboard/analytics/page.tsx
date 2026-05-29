@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { exportAnalyticsXLSX } from '@/lib/export'
 
 interface Summary {
   totalSessions: number
@@ -180,13 +181,34 @@ export default function AnalyticsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div>
-        <h1 style={{ color: 'var(--text)', fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-          Analytics
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-          Attendance trends and session insights
-        </p>
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 12,
+      }}>
+        <div>
+          <h1 style={{ color: 'var(--text)', fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
+            Analytics
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+            Attendance trends and session insights
+          </p>
+        </div>
+        {data && data.summary.totalSessions > 0 && (
+          <button
+            onClick={() => exportAnalyticsXLSX(data)}
+            className="btn-ghost"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <polyline points="8 13 12 17 16 13"/>
+              <line x1="12" y1="17" x2="12" y2="7"/>
+            </svg>
+            Export Excel
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
