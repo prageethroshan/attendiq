@@ -235,7 +235,7 @@ export default function LogPage() {
             type="text"
             value={searchId}
             onChange={e => setSearchId(e.target.value)}
-            placeholder="e.g. BBA/2022/001"
+            placeholder="e.g. MGT/2025/001"
             className="input"
             style={{ fontSize: 13 }}
           />

@@ -335,7 +335,7 @@ export default function StudentScanForm({
               type="text"
               value={studentId}
               onChange={e => setStudentId(e.target.value.toUpperCase())}
-              placeholder="e.g. BBA/2022/001"
+              placeholder="e.g. MGT/2025/001"
               autoCapitalize="characters"
               autoComplete="off"
               autoCorrect="off"

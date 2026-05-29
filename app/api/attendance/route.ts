@@ -40,9 +40,10 @@ export async function POST(req: Request) {
       )
     }
 
-    if (studentId.length < 3 || studentId.length > 30) {
+    const studentIdRegex = /^[A-Z]{2,6}\/\d{4}\/\d{2,4}$/
+    if (!studentIdRegex.test(studentId.trim().toUpperCase())) {
       return NextResponse.json(
-        { error: 'Invalid student ID format.' },
+        { error: 'Invalid Student ID format. Please use the format MGT/2025/001.' },
         { status: 400 }
       )
     }

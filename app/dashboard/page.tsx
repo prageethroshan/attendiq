@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import NewSessionModal from '@/components/NewSessionModal'
 import SessionCard from '@/components/SessionCard'
 import QrPanel from '@/components/QrPanel'
+import EnrollmentUpload from '@/components/EnrollmentUpload'
 import type { Session } from '@/lib/supabase/types'
 
 export default function SessionsPage() {
@@ -11,6 +12,8 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [qrSession, setQrSession] = useState<Session | null>(null)
+  const [uploadSession, setUploadSession] = useState<Session | null>(null)
+  const [showStandaloneUpload, setShowStandaloneUpload] = useState(false)
 
   // Load active sessions on mount
   useEffect(() => {
@@ -80,6 +83,25 @@ export default function SessionsPage() {
         </>
       )}
 
+      {/* ── Enrollment Upload Modal ── */}
+      {(uploadSession || showStandaloneUpload) && (
+        <EnrollmentUpload
+          sessionId={uploadSession?.id}
+          onComplete={studentIds => {
+            if (!uploadSession) return
+            setSessions(prev => prev.map(session =>
+              session.id === uploadSession.id
+                ? { ...session, enrolled_ids: studentIds }
+                : session
+            ))
+          }}
+          onClose={() => {
+            setUploadSession(null)
+            setShowStandaloneUpload(false)
+          }}
+        />
+      )}
+
       {/* ── Page content ── */}
       <div>
         {/* Page header */}
@@ -137,6 +159,7 @@ export default function SessionsPage() {
                 session={session}
                 onEnded={handleEnded}
                 onOpen={handleOpen}
+                onUpload={setUploadSession}
               />
             ))}
           </div>
@@ -173,6 +196,38 @@ export default function SessionsPage() {
             >
               + New Session
             </button>
+          </div>
+        )}
+
+        {/* Enrollment upload — outside of active sessions */}
+        {!loadingSessions && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', marginBottom: 12,
+              gap: 12, flexWrap: 'wrap',
+            }}>
+              <div>
+                <h2 style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700 }}>
+                  Student Enrollment
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
+                  Upload a class list to enroll students into the system
+                </p>
+              </div>
+              <button
+                onClick={() => setShowStandaloneUpload(true)}
+                className="btn-ghost"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="16 16 12 12 8 16"/>
+                  <line x1="12" y1="12" x2="12" y2="21"/>
+                  <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
+                </svg>
+                Upload CSV
+              </button>
+            </div>
           </div>
         )}
       </div>
