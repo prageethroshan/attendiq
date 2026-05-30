@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { createClientSupabaseClient } from '@/lib/supabase/client'
 
 const tabs = [
   {
@@ -59,6 +61,24 @@ interface DashboardNavProps {
 
 export default function DashboardNav({ showAdminTabs = false }: DashboardNavProps) {
   const pathname = usePathname()
+  const [clientIsAdmin, setClientIsAdmin] = useState(false)
+  const isAdmin = showAdminTabs || clientIsAdmin
+
+  useEffect(() => {
+    async function loadAdminRole() {
+      const supabase = createClientSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      setClientIsAdmin(data?.role === 'admin' || user.user_metadata?.role === 'admin')
+    }
+
+    loadAdminRole()
+  }, [])
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -68,7 +88,7 @@ export default function DashboardNav({ showAdminTabs = false }: DashboardNavProp
   return (
     <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       {tabs
-        .filter(tab => !tab.adminOnly || showAdminTabs)
+        .filter(tab => !tab.adminOnly || isAdmin)
         .map(tab => (
         <Link
           key={tab.href}
@@ -98,6 +118,32 @@ export default function DashboardNav({ showAdminTabs = false }: DashboardNavProp
           {tab.label}
         </Link>
       ))}
+
+      {isAdmin && (
+        <Link
+          href="/admin"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 14px',
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'none',
+            transition: 'all 0.15s',
+            background: 'rgba(248,113,113,0.1)',
+            border: '1px solid rgba(248,113,113,0.25)',
+            color: 'var(--danger)',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          Admin Monitor
+        </Link>
+      )}
     </nav>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { exportAttendanceXLSX, exportSubjectRegisterXLSX } from '@/lib/export'
 
 interface AttendanceRow {
@@ -31,6 +32,11 @@ interface SessionOption {
 }
 
 export default function LogPage() {
+  const pathname = usePathname()
+  const isAdminLog = pathname.startsWith('/admin')
+  const sessionsEndpoint = isAdminLog ? '/api/admin/sessions' : '/api/sessions'
+  const attendanceEndpoint = isAdminLog ? '/api/admin/attendance' : '/api/attendance'
+
   const [records, setRecords] = useState<AttendanceRow[]>([])
   const [sessions, setSessions] = useState<SessionOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,10 +48,10 @@ export default function LogPage() {
   const [showExportMenu, setShowExportMenu] = useState(false)
 
   useEffect(() => {
-    fetch('/api/sessions')
+    fetch(sessionsEndpoint)
       .then(r => r.json())
       .then(data => setSessions(Array.isArray(data) ? data : []))
-  }, [])
+  }, [sessionsEndpoint])
 
   const loadRecords = useCallback(async () => {
     setLoading(true)
@@ -54,7 +60,7 @@ export default function LogPage() {
     if (searchId.trim()) params.set('student_id', searchId.trim().toUpperCase())
     params.set('page', String(page))
 
-    const res = await fetch(`/api/attendance?${params}`)
+    const res = await fetch(`${attendanceEndpoint}?${params}`)
     const data = await res.json()
 
     if (res.ok) {
@@ -63,7 +69,7 @@ export default function LogPage() {
       setTotalPages(data.totalPages ?? 1)
     }
     setLoading(false)
-  }, [selectedSession, searchId, page])
+  }, [attendanceEndpoint, selectedSession, searchId, page])
 
   useEffect(() => {
     loadRecords()
@@ -168,7 +174,7 @@ export default function LogPage() {
                 <button
                   onClick={async () => {
                     setShowExportMenu(false)
-                    await exportSubjectRegisterXLSX()
+                    await exportSubjectRegisterXLSX(isAdminLog ? '/api/admin/attendance' : '/api/attendance')
                   }}
                   style={{
                     width: '100%',

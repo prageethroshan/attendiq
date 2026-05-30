@@ -125,12 +125,12 @@ export function exportAnalyticsXLSX(data: any) {
   const date = new Date().toISOString().slice(0, 10)
 
   const subjectRows = (data.bySubject ?? []).map((subject: any) => ({
-    'Subject Code': subject.subject_code,
-    'Subject Name': subject.subject_name,
-    'Sessions Run': subject.sessionCount,
-    'Total Scans': subject.totalCount,
-    'Present': subject.presentCount,
-    'Attendance Rate': `${subject.attendanceRate}%`,
+    'Subject Code': subject.subject_code ?? subject.code,
+    'Subject Name': subject.subject_name ?? subject.name,
+    'Sessions Run': subject.sessionCount ?? subject.count ?? '',
+    'Total Scans': subject.totalCount ?? subject.scans ?? '',
+    'Present': subject.presentCount ?? '',
+    'Attendance Rate': subject.attendanceRate !== undefined ? `${subject.attendanceRate}%` : '',
   }))
 
   const subjectSheet = XLSX.utils.json_to_sheet(subjectRows)
@@ -193,8 +193,8 @@ export function exportAnalyticsXLSX(data: any) {
   XLSX.writeFile(wb, `AttendIQ-Analytics-${date}.xlsx`)
 }
 
-export async function exportSubjectRegisterXLSX() {
-  const res = await fetch('/api/attendance?page=1&pageSize=10000')
+export async function exportSubjectRegisterXLSX(endpoint = '/api/attendance') {
+  const res = await fetch(`${endpoint}?page=1&pageSize=10000`)
   const data = await res.json()
   const records: any[] = data.records ?? []
 
