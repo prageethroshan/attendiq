@@ -54,18 +54,31 @@ export default function AdminMonitorPage() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [endingId, setEndingId] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const scanCounts = useRef<Map<string, number>>(new Map())
 
   async function loadSessions() {
-    const res = await fetch('/api/admin/sessions?filter=active')
-    const data = await res.json()
+    try {
+      const res = await fetch('/api/admin/sessions?filter=active')
+      const data = await res.json()
 
-    if (Array.isArray(data)) {
+      if (!res.ok || data.error) {
+        setError(data.error ?? 'Failed to load sessions.')
+        setLoading(false)
+        return
+      }
+
+      if (!Array.isArray(data)) {
+        setError('Unexpected response format from server.')
+        setLoading(false)
+        return
+      }
+
       const mapped: LiveSession[] = data.map((session: any) => ({
         id: session.id,
         subject_code: session.subject_code,
         subject_name: session.subject_name,
-        teacher_name: session.profiles?.full_name ?? 'Unknown',
+        teacher_name: session.profiles?.full_name ?? session.teacher_name ?? 'Unknown',
         teacher_email: session.profiles?.email ?? '',
         department: session.profiles?.department ?? null,
         short_code: session.short_code,
@@ -80,6 +93,9 @@ export default function AdminMonitorPage() {
       mapped.forEach(session => scanCounts.current.set(session.id, session.scanCount))
       setSessions(mapped)
       setLastUpdate(new Date())
+      setError('')
+    } catch {
+      setError('Network error loading sessions.')
     }
 
     setLoading(false)
@@ -221,6 +237,46 @@ export default function AdminMonitorPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          background: 'rgba(248,113,113,0.08)',
+          border: '1px solid rgba(248,113,113,0.2)',
+          borderRadius: 10,
+          padding: '12px 16px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          fontSize: 13,
+          color: 'var(--danger)',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>{error}</span>
+          <button
+            onClick={() => {
+              setError('')
+              loadSessions()
+            }}
+            style={{
+              marginLeft: 'auto',
+              background: 'none',
+              border: 'none',
+              color: 'var(--danger)',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 600,
+              padding: 0,
+            }}
+          >
+            Retry -&gt;
+          </button>
         </div>
       )}
 
