@@ -97,6 +97,25 @@ export default function AdminNav() {
           {tab.label}
         </Link>
       ))}
+      <Link
+        href="/dashboard"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '6px 12px', borderRadius: 8,
+          fontSize: 13, fontWeight: 500,
+          textDecoration: 'none',
+          color: 'var(--text-muted)',
+          border: '1px solid var(--border)',
+          marginLeft: 8,
+          transition: 'all 0.15s',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        My Dashboard
+      </Link>
     </nav>
   )
 }

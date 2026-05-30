@@ -122,11 +122,12 @@ export default function DashboardNav({ showAdminTabs = false }: DashboardNavProp
       {isAdmin && (
         <Link
           href="/admin"
+          title="Switch to Admin Monitor"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '6px 14px',
+            padding: '6px 12px',
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
@@ -141,7 +142,7 @@ export default function DashboardNav({ showAdminTabs = false }: DashboardNavProp
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          Admin Monitor
+          Admin Monitor -&gt;
         </Link>
       )}
     </nav>
