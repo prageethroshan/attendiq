@@ -44,6 +44,8 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
   const [geoError, setGeoError] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [conflictSessionId, setConflictSessionId] = useState<string | null>(null)
+  const [endingConflict, setEndingConflict] = useState(false)
 
   const [showAddSubject, setShowAddSubject] = useState(false)
   const [newCode, setNewCode] = useState('')
@@ -161,6 +163,7 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
 
     setLoading(true)
     setError('')
+    setConflictSessionId(null)
 
     const res = await fetch('/api/sessions', {
       method: 'POST',
@@ -178,6 +181,9 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
     const data = await res.json()
 
     if (!res.ok) {
+      if (res.status === 409 && data.existing_session_id) {
+        setConflictSessionId(data.existing_session_id)
+      }
       setError(data.error ?? 'Failed to create session.')
       setLoading(false)
       return
@@ -185,6 +191,27 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
 
     onCreated(data)
     router.refresh()
+  }
+
+  async function handleEndConflict() {
+    if (!conflictSessionId) return
+    setEndingConflict(true)
+
+    const res = await fetch(`/api/sessions/${conflictSessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: false }),
+    })
+
+    if (res.ok) {
+      setConflictSessionId(null)
+      setError('')
+      setEndingConflict(false)
+      handleCreate()
+    } else {
+      setError('Failed to end existing session. Please close it from the dashboard first.')
+      setEndingConflict(false)
+    }
   }
 
   return (
@@ -553,10 +580,50 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
               <div style={{
                 background: 'rgba(248,113,113,0.08)',
                 border: '1px solid rgba(248,113,113,0.2)',
-                borderRadius: 8, padding: '10px 12px',
+                borderRadius: 8, padding: '12px 14px',
                 fontSize: 13, color: 'var(--danger)',
               }}>
-                {error}
+                <div style={{ marginBottom: conflictSessionId ? 10 : 0 }}>
+                  {error}
+                </div>
+
+                {conflictSessionId && (
+                  <button
+                    type="button"
+                    onClick={handleEndConflict}
+                    disabled={endingConflict}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: 'rgba(248,113,113,0.15)',
+                      border: '1px solid rgba(248,113,113,0.3)',
+                      borderRadius: 7, padding: '7px 12px',
+                      fontSize: 12, fontWeight: 600,
+                      color: 'var(--danger)',
+                      cursor: endingConflict ? 'not-allowed' : 'pointer',
+                      transition: 'opacity 0.15s',
+                      opacity: endingConflict ? 0.6 : 1,
+                    }}
+                  >
+                    {endingConflict ? (
+                      <>
+                        <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
+                          <path fill="currentColor" d="M4 12a8 8 0 018-8v8z" opacity="0.75"/>
+                        </svg>
+                        Ending session...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/>
+                          <line x1="9" y1="9" x2="15" y2="15"/>
+                          <line x1="15" y1="9" x2="9" y2="15"/>
+                        </svg>
+                        End existing session &amp; start new one
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
 
