@@ -15,6 +15,7 @@ interface AttendanceRow {
   device_fp: string | null
   geo_verified: boolean | null
   dist_metres: number | null
+  manual_entry: boolean
   marked_at: string
   sessions: {
     subject_code: string
@@ -80,7 +81,7 @@ export default function LogPage() {
   }, [selectedSession, searchId])
 
   function isFlagged(r: AttendanceRow) {
-    return r.geo_verified === false
+    return r.geo_verified === false && !r.manual_entry
   }
 
   return (
@@ -332,6 +333,20 @@ export default function LogPage() {
 
                       <td style={{ padding: '10px 14px', color: 'var(--text)', whiteSpace: 'nowrap' }}>
                         {r.student_name}
+                        {r.manual_entry && (
+                          <span style={{
+                            marginLeft: 6,
+                            background: 'rgba(96,165,250,0.12)',
+                            border: '1px solid rgba(96,165,250,0.25)',
+                            color: 'var(--info)',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: '1px 5px',
+                          }}>
+                            Manual
+                          </span>
+                        )}
                         {flagged && (
                           <span style={{
                             marginLeft: 6,

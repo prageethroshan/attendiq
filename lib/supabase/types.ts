@@ -26,6 +26,8 @@ export type AttendanceRecord = {
   device_fp: string | null
   geo_verified: boolean | null
   dist_metres: number | null
+  manual_entry: boolean
+  marked_by: string | null
   marked_at: string
 }
 

@@ -5,6 +5,7 @@ import NewSessionModal from '@/components/NewSessionModal'
 import SessionCard from '@/components/SessionCard'
 import QrPanel from '@/components/QrPanel'
 import EnrollmentUpload from '@/components/EnrollmentUpload'
+import ManualAttendanceModal from '@/components/ManualAttendanceModal'
 import type { Session } from '@/lib/supabase/types'
 
 export default function SessionsPage() {
@@ -13,6 +14,7 @@ export default function SessionsPage() {
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [qrSession, setQrSession] = useState<Session | null>(null)
   const [uploadSession, setUploadSession] = useState<Session | null>(null)
+  const [manualSession, setManualSession] = useState<Session | null>(null)
   const [showStandaloneUpload, setShowStandaloneUpload] = useState(false)
 
   // Load active sessions on mount
@@ -102,6 +104,14 @@ export default function SessionsPage() {
         />
       )}
 
+      {/* ── Manual Attendance Modal ── */}
+      {manualSession && (
+        <ManualAttendanceModal
+          session={manualSession}
+          onClose={() => setManualSession(null)}
+        />
+      )}
+
       {/* ── Page content ── */}
       <div>
         {/* Page header */}
@@ -160,6 +170,7 @@ export default function SessionsPage() {
                 onEnded={handleEnded}
                 onOpen={handleOpen}
                 onUpload={setUploadSession}
+                onManual={setManualSession}
               />
             ))}
           </div>

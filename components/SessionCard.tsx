@@ -8,9 +8,10 @@ interface Props {
   onEnded: (id: string) => void
   onOpen: (session: Session) => void
   onUpload: (session: Session) => void
+  onManual: (session: Session) => void
 }
 
-export default function SessionCard({ session, onEnded, onOpen, onUpload }: Props) {
+export default function SessionCard({ session, onEnded, onOpen, onUpload, onManual }: Props) {
   const [ending, setEnding] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [timeLeft, setTimeLeft] = useState('')
@@ -199,6 +200,27 @@ export default function SessionCard({ session, onEnded, onOpen, onUpload }: Prop
             <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
           </svg>
           Enroll
+        </button>
+
+        <button
+          onClick={() => onManual(session)}
+          className="btn-ghost"
+          style={{
+            flex: 1,
+            padding: '9px 16px',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
+          title="Mark attendance manually"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Manual
         </button>
 
         <button

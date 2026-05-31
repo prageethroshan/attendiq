@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { useQrRotation } from '@/hooks/useQrRotation'
 import { createClientSupabaseClient } from '@/lib/supabase/client'
+import ManualAttendanceModal from '@/components/ManualAttendanceModal'
 import type { Session } from '@/lib/supabase/types'
 
 interface Props {
@@ -21,6 +22,7 @@ export default function QrPanel({ session }: Props) {
   const [scanCount, setScanCount] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [manualUrl, setManualUrl] = useState('/manual')
+  const [showManual, setShowManual] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -119,6 +121,27 @@ export default function QrPanel({ session }: Props) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowManual(true)}
+                className="btn-ghost"
+                style={{
+                  padding: '6px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 12,
+                }}
+                title="Add student manually"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                Add manually
+              </button>
+
               {/* Fullscreen button */}
               <button
                 onClick={toggleFullscreen}
@@ -283,6 +306,13 @@ export default function QrPanel({ session }: Props) {
           </div>
         )}
       </div>
+
+      {showManual && (
+        <ManualAttendanceModal
+          session={session}
+          onClose={() => setShowManual(false)}
+        />
+      )}
     </div>
   )
 }
