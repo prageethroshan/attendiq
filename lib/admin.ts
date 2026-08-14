@@ -15,9 +15,7 @@ export async function requireAdmin() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const userIsAdmin =
-    profile?.role === 'admin' ||
-    user.user_metadata?.role === 'admin'
+  const userIsAdmin = profile?.role === 'admin'
 
   if (!userIsAdmin) redirect('/dashboard')
 
@@ -37,7 +35,7 @@ export async function isAdmin(): Promise<boolean> {
       .eq('id', user.id)
       .maybeSingle()
 
-    return profile?.role === 'admin' || user.user_metadata?.role === 'admin'
+    return profile?.role === 'admin'
   } catch {
     return false
   }

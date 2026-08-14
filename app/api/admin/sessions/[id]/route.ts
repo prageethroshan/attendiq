@@ -1,41 +1,25 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
-
-async function verifyAdmin() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const service = createServiceSupabaseClient()
-  const { data: profile } = await service
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  return profile?.role === 'admin' || user.user_metadata?.role === 'admin'
-    ? user
-    : null
-}
+import { requireAdminApi } from '@/lib/auth'
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await verifyAdmin()
-    if (!admin) {
-      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
-    }
+    const admin = await requireAdminApi()
+    if (admin.error) return admin.error
 
     const { id } = await params
     const body = await req.json()
+    if (typeof body.is_active !== 'boolean') {
+      return NextResponse.json({ error: 'is_active must be a boolean.' }, { status: 400 })
+    }
     const service = createServiceSupabaseClient()
 
     const { data, error } = await service
       .from('sessions')
-      .update({ is_active: body.is_active ?? false })
+      .update({ is_active: body.is_active })
       .eq('id', id)
       .select()
       .single()

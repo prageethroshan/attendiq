@@ -19,9 +19,7 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin =
-    profile?.role === 'admin' ||
-    user.user_metadata?.role === 'admin'
+  const isAdmin = profile?.role === 'admin'
 
   const teacherName = user.user_metadata?.full_name ?? user.email ?? 'Teacher'
   const avatarLetter = teacherName.charAt(0).toUpperCase()

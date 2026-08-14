@@ -11,17 +11,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
     }
 
-    const {
-      sessionId,
-      studentId,
-      studentName,
-      year,
-      department,
-    } = await req.json()
+    const { sessionId, studentId } = await req.json()
 
-    if (!sessionId || !studentId?.trim() || !studentName?.trim()) {
+    if (!sessionId || !studentId?.trim()) {
       return NextResponse.json(
-        { error: 'Session ID, student ID and name are required.' },
+        { error: 'Session ID and student ID are required.' },
         { status: 400 }
       )
     }
@@ -57,6 +51,19 @@ export async function POST(req: Request) {
     }
 
     const service = createServiceSupabaseClient()
+    const { data: enrollment } = await service
+      .from('session_enrollments')
+      .select('student_id, students!inner(name, year, department)')
+      .eq('session_id', sessionId)
+      .eq('student_id', cleanId)
+      .maybeSingle()
+    if (!enrollment) {
+      return NextResponse.json({ error: 'Student is not enrolled in this session.' }, { status: 403 })
+    }
+    const student = Array.isArray(enrollment.students) ? enrollment.students[0] : enrollment.students
+    if (!student) {
+      return NextResponse.json({ error: 'Student record not found.' }, { status: 409 })
+    }
 
     const { data: existing } = await service
       .from('attendance_records')
@@ -82,9 +89,9 @@ export async function POST(req: Request) {
       .insert({
         session_id: sessionId,
         student_id: cleanId,
-        student_name: studentName.trim(),
-        year: String(year ?? ''),
-        department: department ?? null,
+        student_name: student.name,
+        year: String(student.year),
+        department: student.department ?? null,
         status: 'Present',
         device_fp: null,
         geo_verified: null,
@@ -109,18 +116,6 @@ export async function POST(req: Request) {
         { status: 500 }
       )
     }
-
-    await service
-      .from('students')
-      .upsert(
-        {
-          student_id: cleanId,
-          name: studentName.trim(),
-          year: String(year ?? ''),
-          department: department ?? '',
-        },
-        { onConflict: 'student_id' }
-      )
 
     return NextResponse.json({
       studentId: record.student_id,

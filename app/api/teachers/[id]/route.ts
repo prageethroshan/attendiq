@@ -1,60 +1,33 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
-
-async function requireAdmin() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: NextResponse.json({ error: 'Unauthorised.' }, { status: 401 }) }
-  }
-
-  const service = createServiceSupabaseClient()
-  const { data: profile } = await service
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const isAdmin =
-    profile?.role === 'admin' ||
-    user.user_metadata?.role === 'admin'
-
-  if (!isAdmin) {
-    return { error: NextResponse.json({ error: 'Forbidden.' }, { status: 403 }) }
-  }
-
-  return { user }
-}
+import { requireAdminApi } from '@/lib/auth'
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin()
+    const admin = await requireAdminApi()
     if (admin.error) return admin.error
 
     const { id } = await params
     const body = await req.json()
     const service = createServiceSupabaseClient()
 
+    if (body.new_password && (typeof body.new_password !== 'string' || body.new_password.length < 8)) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters.' },
+        { status: 400 }
+      )
+    }
+    if ('is_active' in body && typeof body.is_active !== 'boolean') {
+      return NextResponse.json({ error: 'is_active must be a boolean.' }, { status: 400 })
+    }
+
     const profileUpdates: Record<string, unknown> = {}
     if ('full_name' in body) profileUpdates.full_name = body.full_name
     if ('department' in body) profileUpdates.department = body.department
     if ('is_active' in body) profileUpdates.is_active = body.is_active
-
-    if (Object.keys(profileUpdates).length > 0) {
-      const { error } = await service
-        .from('profiles')
-        .update(profileUpdates)
-        .eq('id', id)
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
-    }
 
     if ('is_active' in body) {
       const { error } = await service.auth.admin.updateUserById(id, {
@@ -67,16 +40,20 @@ export async function PATCH(
     }
 
     if (body.new_password) {
-      if (body.new_password.length < 8) {
-        return NextResponse.json(
-          { error: 'Password must be at least 8 characters.' },
-          { status: 400 }
-        )
-      }
-
       const { error } = await service.auth.admin.updateUserById(id, {
         password: body.new_password,
       })
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+    }
+
+    if (Object.keys(profileUpdates).length > 0) {
+      const { error } = await service
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', id)
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
@@ -96,7 +73,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin()
+    const admin = await requireAdminApi()
     if (admin.error) return admin.error
 
     const { id } = await params

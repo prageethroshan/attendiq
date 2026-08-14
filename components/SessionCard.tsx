@@ -142,9 +142,9 @@ export default function SessionCard({ session, onEnded, onOpen, onUpload, onManu
           },
           {
             label: 'Enrolled',
-            value: session.enrolled_ids?.length
-              ? `${session.enrolled_ids.length} students`
-              : 'Open',
+            value: session.enrolled_count
+              ? `${session.enrolled_count} students`
+              : 'Roster required',
             color: 'var(--text)',
           },
         ].map(stat => (

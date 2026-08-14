@@ -3,14 +3,7 @@
 import { useState } from 'react'
 
 interface AttendanceRecord {
-  id: string
-  session_id: string
-  student_id: string
-  student_name: string
-  year: string
-  department: string | null
   status: string
-  geo_verified: boolean | null
   marked_at: string
   sessions: {
     subject_code: string
@@ -322,7 +315,7 @@ export default function LookupPage() {
 
                   <div>
                     {group.records.map((r, i) => (
-                      <div key={r.id} style={{
+                      <div key={`${r.marked_at}-${i}`} style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',

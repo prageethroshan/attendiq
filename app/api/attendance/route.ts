@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { attendanceSchema, paginationSchema, validationError } from '@/lib/validation'
+import { deviceIdentity, enforceRateLimit, setDeviceCookie } from '@/lib/security'
 
 function haversineMetres(
   lat1: number, lng1: number,
@@ -18,44 +20,17 @@ function haversineMetres(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-
-    const {
-      token,
-      sessionId,
-      studentId,
-      studentName,
-      year,
-      department,
-      deviceFp,
-      geo,
-    } = body
-
-    if (!token || !sessionId || !studentId || !studentName || !year) {
-      return NextResponse.json(
-        { error: 'Missing required fields.' },
-        { status: 400 }
-      )
+    const parsed = attendanceSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: validationError(parsed.error) }, { status: 400 })
     }
+    const { token, sessionId, studentId, geo } = parsed.data
+    const limited = await enforceRateLimit(req, 'attendance', `${sessionId}:${studentId}`, 20)
+    if (limited) return limited
 
-    const studentIdRegex = /^[A-Z]{2,6}\/\d{4}\/\d{2,4}$/
-    if (!studentIdRegex.test(studentId.trim().toUpperCase())) {
-      return NextResponse.json(
-        { error: 'Invalid Student ID format. Please use the format MGT/2025/001.' },
-        { status: 400 }
-      )
-    }
-
-    if (!deviceFp) {
-      return NextResponse.json(
-        { error: 'Device verification failed. Please refresh and try again.' },
-        { status: 400 }
-      )
-    }
-
-    const supabase = await createServerSupabaseClient()
+    const supabase = createServiceSupabaseClient()
 
     const { data: session } = await supabase
       .from('sessions')
@@ -64,7 +39,6 @@ export async function POST(req: Request) {
         token,
         is_active,
         expires_at,
-        enrolled_ids,
         geo_lat,
         geo_lng,
         geo_radius_m,
@@ -100,19 +74,30 @@ export async function POST(req: Request) {
       )
     }
 
-    const normalisedStudentId = studentId.trim().toUpperCase()
-    const service = createServiceSupabaseClient()
+    const normalisedStudentId = studentId
+    const { data: enrollment } = await supabase
+      .from('session_enrollments')
+      .select('student_id, students!inner(name, year, department)')
+      .eq('session_id', sessionId)
+      .eq('student_id', normalisedStudentId)
+      .maybeSingle()
 
-    if (session.enrolled_ids && session.enrolled_ids.length > 0) {
-      if (!session.enrolled_ids.includes(normalisedStudentId)) {
-        return NextResponse.json(
-          { error: 'Your Student ID is not enrolled in this subject. Check your ID and try again.' },
-          { status: 403 }
-        )
-      }
+    if (!enrollment) {
+      return NextResponse.json(
+        { error: 'Your Student ID is not enrolled in this session.' },
+        { status: 403 }
+      )
     }
 
-    const { data: existing } = await service
+    const student = Array.isArray(enrollment.students)
+      ? enrollment.students[0]
+      : enrollment.students
+    if (!student) {
+      return NextResponse.json({ error: 'Student record not found.' }, { status: 409 })
+    }
+    const device = await deviceIdentity(req)
+
+    const { data: existing } = await supabase
       .from('attendance_records')
       .select('id, marked_at')
       .eq('session_id', sessionId)
@@ -130,11 +115,11 @@ export async function POST(req: Request) {
       )
     }
 
-    const { data: sameDevice } = await service
+    const { data: sameDevice } = await supabase
       .from('attendance_records')
       .select('student_id')
       .eq('session_id', sessionId)
-      .eq('device_fp', deviceFp)
+      .eq('device_fp', device.id)
       .limit(1)
       .maybeSingle()
 
@@ -165,16 +150,16 @@ export async function POST(req: Request) {
 
     const status = 'Present'
 
-    const { data: record, error: insertError } = await service
+    const { data: record, error: insertError } = await supabase
       .from('attendance_records')
       .insert({
         session_id: sessionId,
         student_id: normalisedStudentId,
-        student_name: studentName.trim(),
-        year: String(year),
-        department: department ?? null,
+        student_name: student.name,
+        year: String(student.year),
+        department: student.department ?? null,
         status,
-        device_fp: deviceFp ?? null,
+        device_fp: device.id,
         geo_verified: geoVerified,
         dist_metres: distMetres,
         marked_at: new Date().toISOString(),
@@ -184,6 +169,13 @@ export async function POST(req: Request) {
 
     if (insertError) {
       if (insertError.code === '23505') {
+        const constraint = `${insertError.message} ${insertError.details}`
+        if (constraint.includes('attendance_one_record_per_student')) {
+          return NextResponse.json(
+            { error: 'Attendance has already been marked for this student.' },
+            { status: 409 }
+          )
+        }
         return NextResponse.json(
           {
             error: 'Attendance has already been marked from this device for this session. Each device can only be used once per session.',
@@ -199,19 +191,7 @@ export async function POST(req: Request) {
       )
     }
 
-    await service
-      .from('students')
-      .upsert(
-        {
-          student_id: normalisedStudentId,
-          name: studentName.trim(),
-          year: String(year),
-          department: department ?? '',
-        },
-        { onConflict: 'student_id' }
-      )
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       studentId: record.student_id,
       studentName: record.student_name,
       year: record.year,
@@ -221,6 +201,7 @@ export async function POST(req: Request) {
       distMetres: record.dist_metres,
       markedAt: record.marked_at,
     })
+    return setDeviceCookie(response, device.cookie)
 
   } catch (err) {
     console.error('POST /api/attendance error:', err)
@@ -243,11 +224,14 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const sessionId = searchParams.get('session_id')
     const studentId = searchParams.get('student_id')
-    const page = parseInt(searchParams.get('page') ?? '1')
-    const pageSizeParam = parseInt(searchParams.get('pageSize') ?? '50')
-    const pageSize = Number.isFinite(pageSizeParam)
-      ? Math.min(Math.max(pageSizeParam, 1), 10000)
-      : 50
+    const pagination = paginationSchema.safeParse({
+      page: searchParams.get('page') ?? undefined,
+      pageSize: searchParams.get('pageSize') ?? undefined,
+    })
+    if (!pagination.success) {
+      return NextResponse.json({ error: 'Invalid pagination.' }, { status: 400 })
+    }
+    const { page, pageSize } = pagination.data
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 

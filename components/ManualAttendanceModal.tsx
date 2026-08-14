@@ -31,12 +31,6 @@ export default function ManualAttendanceModal({ session, onClose }: Props) {
   const [error, setError] = useState('')
   const [marked, setMarked] = useState<MarkedEntry[]>([])
 
-  const [manualId, setManualId] = useState('')
-  const [manualName, setManualName] = useState('')
-  const [manualYear, setManualYear] = useState('')
-  const [manualDept, setManualDept] = useState('')
-  const [showManual, setShowManual] = useState(false)
-
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -73,18 +67,10 @@ export default function ManualAttendanceModal({ session, onClose }: Props) {
     setError('')
     setSubmitting(true)
 
-    const payload = student ? {
+    if (!student) return
+    const payload = {
       sessionId: session.id,
       studentId: student.student_id,
-      studentName: student.name,
-      year: student.year,
-      department: student.department,
-    } : {
-      sessionId: session.id,
-      studentId: manualId,
-      studentName: manualName,
-      year: manualYear,
-      department: manualDept,
     }
 
     const res = await fetch('/api/attendance/manual', {
@@ -109,11 +95,6 @@ export default function ManualAttendanceModal({ session, onClose }: Props) {
     setQuery('')
     setResults([])
     setSelected(null)
-    setManualId('')
-    setManualName('')
-    setManualYear('')
-    setManualDept('')
-    setShowManual(false)
     setSubmitting(false)
     inputRef.current?.focus()
   }
@@ -346,118 +327,9 @@ export default function ManualAttendanceModal({ session, onClose }: Props) {
             </div>
           )}
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            margin: '14px 0',
-          }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>
-              Student not in system?
-            </span>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-          </div>
-
-          <button
-            onClick={() => setShowManual(prev => !prev)}
-            className="btn-ghost"
-            style={{
-              width: '100%',
-              fontSize: 13,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              marginBottom: showManual ? 12 : 0,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-            {showManual ? 'Hide manual form' : 'Enter student details manually'}
-          </button>
-
-          {showManual && (
-            <div style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-              padding: 14,
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div>
-                  <label className="field-label">Student ID</label>
-                  <input
-                    type="text"
-                    value={manualId}
-                    onChange={e => setManualId(e.target.value.toUpperCase())}
-                    placeholder="MGT/2025/001"
-                    autoCapitalize="characters"
-                    className="input"
-                    style={{ fontSize: 15 }}
-                  />
-                </div>
-
-                <div>
-                  <label className="field-label">Full Name</label>
-                  <input
-                    type="text"
-                    value={manualName}
-                    onChange={e => setManualName(e.target.value)}
-                    placeholder="As per university records"
-                    className="input"
-                    style={{ fontSize: 15 }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div>
-                    <label className="field-label">Year</label>
-                    <select
-                      value={manualYear}
-                      onChange={e => setManualYear(e.target.value)}
-                      className="input"
-                      style={{ fontSize: 14, cursor: 'pointer' }}
-                    >
-                      <option value="">Select</option>
-                      <option value="1">Year 1</option>
-                      <option value="2">Year 2</option>
-                      <option value="3">Year 3</option>
-                      <option value="4">Year 4</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="field-label">Department</label>
-                    <select
-                      value={manualDept}
-                      onChange={e => setManualDept(e.target.value)}
-                      className="input"
-                      style={{ fontSize: 14, cursor: 'pointer' }}
-                    >
-                      <option value="">Select</option>
-                      <option value="Accountancy & Finance">Accountancy &amp; Finance</option>
-                      <option value="Business Management">Business Management</option>
-                      <option value="Information Systems">Information Systems</option>
-                      <option value="Marketing Management">Marketing Management</option>
-                      <option value="Human Resource Management">Human Resource Management</option>
-                      <option value="Tourism & Hospitality">Tourism &amp; Hospitality</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleMark()}
-                  disabled={submitting || !manualId.trim() || !manualName.trim()}
-                  className="btn-primary"
-                  style={{ marginTop: 4 }}
-                >
-                  {submitting ? 'Marking...' : 'Mark Present Manually'}
-                </button>
-              </div>
-            </div>
-          )}
+          <p style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 14, textAlign: 'center' }}>
+            Only students in this session&apos;s uploaded roster can be marked manually.
+          </p>
 
           {error && (
             <div style={{

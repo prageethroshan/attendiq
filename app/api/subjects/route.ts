@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { subjectSchema, validationError } from '@/lib/validation'
 
 export async function GET() {
   try {
@@ -12,7 +13,8 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('subjects')
-      .select('*')
+      .select('id, code, name, year, semester, is_custom, created_by')
+      .or(`is_custom.eq.false,created_by.eq.${user.id}`)
       .order('year', { ascending: true })
       .order('semester', { ascending: true })
       .order('code', { ascending: true })
@@ -38,29 +40,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
     }
 
-    const { code, name, year, semester } = await req.json()
-
-    if (!code?.trim() || !name?.trim()) {
-      return NextResponse.json(
-        { error: 'Subject code and name are required.' },
-        { status: 400 }
-      )
+    const parsed = subjectSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: validationError(parsed.error) }, { status: 400 })
     }
-
-    if (code.trim().length > 20) {
-      return NextResponse.json(
-        { error: 'Subject code must be 20 characters or less.' },
-        { status: 400 }
-      )
-    }
+    const { code, name, year, semester } = parsed.data
 
     const { data, error } = await supabase
       .from('subjects')
       .insert({
-        code: code.trim().toUpperCase(),
-        name: name.trim(),
-        year: year ? parseInt(year) : null,
-        semester: semester ? parseInt(semester) : null,
+        code,
+        name,
+        year: year ?? null,
+        semester: semester ?? null,
         is_custom: true,
         created_by: user.id,
       })
@@ -70,7 +62,7 @@ export async function POST(req: Request) {
     if (error) {
       if (error.code === '23505') {
         return NextResponse.json(
-          { error: `Subject code "${code.trim().toUpperCase()}" already exists.` },
+          { error: `Subject code "${code}" already exists.` },
           { status: 409 }
         )
       }

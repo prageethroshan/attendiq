@@ -1,32 +1,25 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
+import { studentIdSchema, validationError } from '@/lib/validation'
+import { enforceRateLimit } from '@/lib/security'
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const studentId = searchParams.get('student_id')?.trim().toUpperCase()
-
-    if (!studentId || studentId.length < 3) {
-      return NextResponse.json(
-        { error: 'Please enter a valid Student ID.' },
-        { status: 400 }
-      )
+    const parsed = studentIdSchema.safeParse(searchParams.get('student_id') ?? '')
+    if (!parsed.success) {
+      return NextResponse.json({ error: validationError(parsed.error) }, { status: 400 })
     }
+    const studentId = parsed.data
+    const limited = await enforceRateLimit(req, 'lookup', studentId, 10)
+    if (limited) return limited
 
     const supabase = createServiceSupabaseClient()
 
-    const { data: records, error } = await supabase
-      .from('attendance_records')
+    const { data: enrollments, error: enrollmentError } = await supabase
+      .from('session_enrollments')
       .select(`
-        id,
         session_id,
-        student_id,
-        student_name,
-        year,
-        department,
-        status,
-        geo_verified,
-        marked_at,
         sessions(
           subject_code,
           subject_name,
@@ -34,17 +27,37 @@ export async function GET(req: Request) {
         )
       `)
       .eq('student_id', studentId)
-      .order('marked_at', { ascending: false })
 
-    if (error) {
-      console.error('Lookup error:', error)
+    if (enrollmentError) {
+      console.error('Lookup error:', enrollmentError)
       return NextResponse.json(
         { error: 'Failed to fetch records. Please try again.' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ records: records ?? [] })
+    const sessionIds = (enrollments ?? []).map(enrollment => enrollment.session_id)
+    const { data: records, error } = sessionIds.length > 0
+      ? await supabase
+          .from('attendance_records')
+          .select('session_id, status, marked_at')
+          .eq('student_id', studentId)
+          .in('session_id', sessionIds)
+      : { data: [], error: null }
+    if (error) {
+      return NextResponse.json({ error: 'Failed to fetch records.' }, { status: 500 })
+    }
+    const recordMap = new Map((records ?? []).map(record => [record.session_id, record]))
+    const safeRecords = (enrollments ?? []).map(enrollment => {
+      const record = recordMap.get(enrollment.session_id)
+      const session = Array.isArray(enrollment.sessions) ? enrollment.sessions[0] : enrollment.sessions
+      return {
+        status: record?.status ?? 'Absent',
+        marked_at: record?.marked_at ?? session?.created_at,
+        sessions: session,
+      }
+    }).sort((a, b) => new Date(b.marked_at ?? 0).getTime() - new Date(a.marked_at ?? 0).getTime())
+    return NextResponse.json({ records: safeRecords })
 
   } catch (err) {
     console.error('GET /api/lookup error:', err)

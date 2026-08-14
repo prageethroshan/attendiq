@@ -1,47 +1,17 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
-
-async function requireAdmin() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: NextResponse.json({ error: 'Unauthorised.' }, { status: 401 }) }
-  }
-
-  const service = createServiceSupabaseClient()
-  const { data: profile } = await service
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const isAdmin =
-    profile?.role === 'admin' ||
-    user.user_metadata?.role === 'admin'
-
-  if (!isAdmin) {
-    return { error: NextResponse.json({ error: 'Forbidden.' }, { status: 403 }) }
-  }
-
-  return { user }
-}
+import { requireAdminApi } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const supabase = await createServerSupabaseClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
-    }
+    const admin = await requireAdminApi()
+    if (admin.error) return admin.error
 
     const service = createServiceSupabaseClient()
 
     const { data, error } = await service
       .from('profiles')
-      .select('*')
+      .select('id, full_name, email, department, role, is_active, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -59,7 +29,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const admin = await requireAdmin()
+    const admin = await requireAdminApi()
     if (admin.error) return admin.error
 
     const { full_name, email, password, department } = await req.json()

@@ -12,11 +12,19 @@ interface LiveSession {
   department: string | null
   short_code: string
   expires_at: string
-  enrolled_ids: string[]
+  enrolled_count: number
   geo_lat: number | null
   is_active: boolean
   created_at: string
   scanCount: number
+}
+
+interface AdminSessionResponse {
+  id: string; subject_code: string; subject_name: string; teacher_name?: string
+  short_code: string; expires_at: string; enrolled_count?: number; geo_lat: number | null
+  is_active: boolean; created_at: string
+  profiles?: { full_name?: string; email?: string; department?: string | null }
+  attendance_records?: Array<{ count: number }>
 }
 
 function TimeLeft({ expiresAt }: { expiresAt: string }) {
@@ -74,7 +82,7 @@ export default function AdminMonitorPage() {
         return
       }
 
-      const mapped: LiveSession[] = data.map((session: any) => ({
+      const mapped: LiveSession[] = (data as AdminSessionResponse[]).map(session => ({
         id: session.id,
         subject_code: session.subject_code,
         subject_name: session.subject_name,
@@ -83,7 +91,7 @@ export default function AdminMonitorPage() {
         department: session.profiles?.department ?? null,
         short_code: session.short_code,
         expires_at: session.expires_at,
-        enrolled_ids: session.enrolled_ids ?? [],
+        enrolled_count: session.enrolled_count ?? 0,
         geo_lat: session.geo_lat,
         is_active: session.is_active,
         created_at: session.created_at,
@@ -175,7 +183,7 @@ export default function AdminMonitorPage() {
   }
 
   const totalScans = sessions.reduce((sum, session) => sum + session.scanCount, 0)
-  const totalEnrolled = sessions.reduce((sum, session) => sum + (session.enrolled_ids?.length ?? 0), 0)
+  const totalEnrolled = sessions.reduce((sum, session) => sum + session.enrolled_count, 0)
 
   return (
     <div>
@@ -321,8 +329,8 @@ export default function AdminMonitorPage() {
           gap: 14,
         }}>
           {sessions.map(session => {
-            const rate = session.enrolled_ids?.length > 0
-              ? Math.round((session.scanCount / session.enrolled_ids.length) * 100)
+            const rate = session.enrolled_count > 0
+              ? Math.round((session.scanCount / session.enrolled_count) * 100)
               : null
 
             return (
@@ -415,7 +423,7 @@ export default function AdminMonitorPage() {
                     </div>
                     <div style={{ color: 'var(--text-dim)', fontSize: 10, marginTop: 3 }}>
                       scanned
-                      {session.enrolled_ids?.length > 0 && ` / ${session.enrolled_ids.length}`}
+                      {session.enrolled_count > 0 && ` / ${session.enrolled_count}`}
                     </div>
                   </div>
 
@@ -452,7 +460,7 @@ export default function AdminMonitorPage() {
                   </div>
                 </div>
 
-                {session.enrolled_ids?.length > 0 && (
+                {session.enrolled_count > 0 && (
                   <div style={{ marginBottom: 14 }}>
                     <div style={{
                       height: 6, background: 'rgba(255,255,255,0.06)',
@@ -460,7 +468,7 @@ export default function AdminMonitorPage() {
                     }}>
                       <div style={{
                         height: '100%',
-                        width: `${Math.min(100, Math.round((session.scanCount / session.enrolled_ids.length) * 100))}%`,
+                        width: `${Math.min(100, Math.round((session.scanCount / session.enrolled_count) * 100))}%`,
                         background: 'var(--em)',
                         borderRadius: 3,
                         transition: 'width 0.5s ease',

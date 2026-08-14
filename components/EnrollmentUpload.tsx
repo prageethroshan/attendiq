@@ -36,7 +36,7 @@ export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Pro
       skipEmptyLines: true,
       transformHeader: header => header.trim(),
       complete: result => {
-        const rows = result.data as any[]
+        const rows = result.data as Array<Record<string, unknown>>
         const errors: string[] = []
         const parsed: Student[] = []
 

@@ -33,10 +33,14 @@ export async function PATCH(
     }
 
     // Build update payload — only allow safe fields to be patched
-    const allowed = ['is_active', 'token', 'short_code', 'expires_at']
+    const allowed = ['is_active']
     const updates: Record<string, unknown> = {}
     for (const key of allowed) {
       if (key in body) updates[key] = body[key]
+    }
+
+    if ('is_active' in updates && typeof updates.is_active !== 'boolean') {
+      return NextResponse.json({ error: 'is_active must be a boolean.' }, { status: 400 })
     }
 
     if (Object.keys(updates).length === 0) {
@@ -79,7 +83,7 @@ export async function GET(
 
     const { data: session, error } = await supabase
       .from('sessions')
-      .select('*')
+      .select('id, token, short_code, subject_code, subject_name, teacher_id, teacher_name, is_active, expires_at, geo_lat, geo_lng, geo_radius_m, created_at')
       .eq('id', id)
       .eq('teacher_id', user.id)
       .single()

@@ -14,59 +14,43 @@ interface Props {
   subjectCode: string
   subjectName: string
   teacherName: string
-  enrolledIds: string[]
   geoConfig: GeoConfig | null
 }
 
 type FormState = 'idle' | 'submitting' | 'success' | 'error'
 type GeoStatus = 'pending' | 'locating' | 'ok' | 'denied' | 'skipped'
-
-function hashFingerprint(str: string): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0
-  }
-  return Math.abs(hash).toString(36)
+interface AttendanceResult {
+  studentId: string
+  studentName: string
+  year: string
+  department: string | null
+  status: string
+  geoVerified: boolean | null
+  distMetres: number | null
+  markedAt: string
 }
 
 export default function StudentScanForm({
   sessionId, token,
   subjectCode, subjectName, teacherName,
-  enrolledIds, geoConfig,
+  geoConfig,
 }: Props) {
   const [studentId, setStudentId] = useState('')
-  const [studentName, setStudentName] = useState('')
-  const [year, setYear] = useState('')
-  const [department, setDepartment] = useState('')
 
   const [formState, setFormState] = useState<FormState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<AttendanceResult | null>(null)
 
-  const [deviceFp, setDeviceFp] = useState('')
   const [deviceBlocked, setDeviceBlocked] = useState(false)
   const [deviceCheckDone, setDeviceCheckDone] = useState(false)
   const [geoStatus, setGeoStatus] = useState<GeoStatus>(geoConfig ? 'pending' : 'skipped')
   const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
-    const raw = [
-      navigator.userAgent,
-      navigator.language,
-      `${screen.width}x${screen.height}`,
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
-      String(navigator.hardwareConcurrency ?? ''),
-    ].join('|')
-    setDeviceFp(hashFingerprint(raw))
-  }, [])
-
-  useEffect(() => {
-    if (!deviceFp || !sessionId) return
-
     fetch('/api/attendance/device-check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, deviceFp }),
+      body: JSON.stringify({ sessionId, token }),
     })
       .then(response => response.json())
       .then(data => {
@@ -74,7 +58,7 @@ export default function StudentScanForm({
         setDeviceCheckDone(true)
       })
       .catch(() => setDeviceCheckDone(true))
-  }, [deviceFp, sessionId])
+  }, [sessionId, token])
 
   useEffect(() => {
     if (!geoConfig) return
@@ -97,19 +81,6 @@ export default function StudentScanForm({
       setErrorMsg('Please enter your Student ID.')
       return
     }
-    if (!studentName.trim()) {
-      setErrorMsg('Please enter your full name.')
-      return
-    }
-    if (!year) {
-      setErrorMsg('Please select your year of study.')
-      return
-    }
-    if (!department) {
-      setErrorMsg('Please select your department.')
-      return
-    }
-
     setFormState('submitting')
 
     const res = await fetch('/api/attendance', {
@@ -119,10 +90,6 @@ export default function StudentScanForm({
         token,
         sessionId,
         studentId: studentId.trim().toUpperCase(),
-        studentName: studentName.trim(),
-        year,
-        department,
-        deviceFp,
         geo: geoCoords,
       }),
     })
@@ -345,53 +312,9 @@ export default function StudentScanForm({
             />
           </div>
 
-          <div>
-            <label className="field-label">Full Name</label>
-            <input
-              type="text"
-              value={studentName}
-              onChange={e => setStudentName(e.target.value)}
-              placeholder="As per university records"
-              autoComplete="name"
-              className="input"
-              style={{ fontSize: 16 }}
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div>
-              <label className="field-label">Year</label>
-              <select
-                value={year}
-                onChange={e => setYear(e.target.value)}
-                className="input"
-                style={{ fontSize: 16, cursor: 'pointer' }}
-              >
-                <option value="">Select</option>
-                <option value="1">Year 1</option>
-                <option value="2">Year 2</option>
-                <option value="3">Year 3</option>
-                <option value="4">Year 4</option>
-              </select>
-            </div>
-            <div>
-              <label className="field-label">Department</label>
-              <select
-                value={department}
-                onChange={e => setDepartment(e.target.value)}
-                className="input"
-                style={{ fontSize: 16, cursor: 'pointer' }}
-              >
-                <option value="">Select</option>
-                <option value="Accountancy & Finance">Accountancy &amp; Finance</option>
-                <option value="Business Management">Business Management</option>
-                <option value="Information Systems">Information Systems</option>
-                <option value="Marketing Management">Marketing Management</option>
-                <option value="Human Resource Management">Human Resource Management</option>
-                <option value="Tourism & Hospitality">Tourism &amp; Hospitality</option>
-              </select>
-            </div>
-          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.5 }}>
+            Your name and academic details will be loaded from the enrolled student roster.
+          </p>
         </div>
 
         {(formState === 'error' || errorMsg) && (

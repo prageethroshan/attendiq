@@ -8,7 +8,7 @@ export type Session = {
   teacher_name: string
   is_active: boolean
   expires_at: string
-  enrolled_ids: string[]
+  enrolled_count?: number
   geo_lat: number | null
   geo_lng: number | null
   geo_radius_m: number | null

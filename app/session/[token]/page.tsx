@@ -20,7 +20,6 @@ export default async function SessionPage({ params }: Props) {
       teacher_name,
       is_active,
       expires_at,
-      enrolled_ids,
       geo_lat,
       geo_lng,
       geo_radius_m
@@ -85,7 +84,6 @@ export default async function SessionPage({ params }: Props) {
       subjectCode={session.subject_code}
       subjectName={session.subject_name}
       teacherName={session.teacher_name}
-      enrolledIds={session.enrolled_ids ?? []}
       geoConfig={
         session.geo_lat !== null
           ? {

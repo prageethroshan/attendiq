@@ -93,7 +93,7 @@ export default function SessionsPage() {
             if (!uploadSession) return
             setSessions(prev => prev.map(session =>
               session.id === uploadSession.id
-                ? { ...session, enrolled_ids: studentIds }
+                ? { ...session, enrolled_count: studentIds.length }
                 : session
             ))
           }}

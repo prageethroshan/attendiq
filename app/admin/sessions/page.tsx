@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from 'react'
 
+interface AdminSession {
+  id: string; subject_code: string; subject_name: string; is_active: boolean
+  created_at: string; expires_at: string
+  profiles?: { full_name?: string; email?: string; department?: string | null }
+  attendance_records?: Array<{ count: number }>
+}
+
 export default function AdminSessionsPage() {
-  const [sessions, setSessions] = useState<any[]>([])
+  const [sessions, setSessions] = useState<AdminSession[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'history'>('all')
   const [searchTeacher, setSearch] = useState('')

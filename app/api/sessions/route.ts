@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { generateToken, generateShortCode } from '@/lib/qr'
+import { createSessionSchema, validationError } from '@/lib/validation'
+import { createServiceSupabaseClient } from '@/lib/supabase/service'
 
 export async function POST(req: Request) {
   try {
@@ -12,31 +14,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
     }
 
-    const body = await req.json()
+    const parsed = createSessionSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: validationError(parsed.error) }, { status: 400 })
+    }
     const {
-      subject_code,
-      subject_name,
-      duration_minutes,
-      enrolled_ids = [],
-      geo_lat = null,
-      geo_lng = null,
-      geo_radius_m = null,
-    } = body
-
-    // ── Validate required fields ──
-    if (!subject_code?.trim() || !subject_name?.trim() || !duration_minutes) {
-      return NextResponse.json(
-        { error: 'subject_code, subject_name and duration_minutes are required.' },
-        { status: 400 }
-      )
-    }
-
-    if (duration_minutes < 5 || duration_minutes > 480) {
-      return NextResponse.json(
-        { error: 'Duration must be between 5 and 480 minutes.' },
-        { status: 400 }
-      )
-    }
+      subject_code, subject_name, duration_minutes,
+      geo_lat, geo_lng, geo_radius_m,
+    } = parsed.data
 
     // ── Duplicate active session guard ──
     // Teacher cannot run two sessions at the same time
@@ -73,21 +58,25 @@ export async function POST(req: Request) {
         Date.now() + duration_minutes * 60 * 1000
       ).toISOString()
 
-      const teacherName =
-        user.user_metadata?.full_name ?? user.email ?? 'Unknown'
+      const service = createServiceSupabaseClient()
+      const { data: profile } = await service
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle()
+      const teacherName = profile?.full_name ?? user.email ?? 'Unknown'
 
       const { error: insertError } = await supabase
         .from('sessions')
         .insert({
           token,
           short_code,
-          subject_code: subject_code.trim().toUpperCase(),
-          subject_name: subject_name.trim(),
+          subject_code,
+          subject_name,
           teacher_id: user.id,
           teacher_name: teacherName,
           is_active: true,
           expires_at,
-          enrolled_ids,
           geo_lat,
           geo_lng,
           geo_radius_m,
@@ -95,6 +84,11 @@ export async function POST(req: Request) {
 
       if (!insertError) {
         inserted = true
+      } else if (`${insertError.message} ${insertError.details}`.includes('sessions_one_active_per_teacher')) {
+        return NextResponse.json(
+          { error: 'You already have an active session. End it before starting another.' },
+          { status: 409 }
+        )
       } else if (!insertError.message.includes('unique')) {
         // Non-collision error — bail immediately
         console.error('Session insert error:', insertError)
@@ -116,7 +110,7 @@ export async function POST(req: Request) {
     // ── Fetch and return the full session ──
     const { data: session } = await supabase
       .from('sessions')
-      .select('*')
+      .select('id, token, short_code, subject_code, subject_name, teacher_id, teacher_name, is_active, expires_at, geo_lat, geo_lng, geo_radius_m, created_at')
       .eq('token', token)
       .single()
 
@@ -146,8 +140,10 @@ export async function GET(req: Request) {
     let query = supabase
       .from('sessions')
       .select(`
-        *,
-        attendance_records(count)
+        id, token, short_code, subject_code, subject_name, teacher_id, teacher_name,
+        is_active, expires_at, geo_lat, geo_lng, geo_radius_m, created_at,
+        attendance_records(count),
+        session_enrollments(count)
       `)
       .eq('teacher_id', user.id)
       .order('created_at', { ascending: false })
@@ -164,7 +160,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(sessions)
+    return NextResponse.json((sessions ?? []).map(session => ({
+      ...session,
+      enrolled_count: session.session_enrollments?.[0]?.count ?? 0,
+    })))
 
   } catch (err) {
     console.error('GET /api/sessions error:', err)

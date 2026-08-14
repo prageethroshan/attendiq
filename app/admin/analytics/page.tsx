@@ -3,8 +3,18 @@
 import { useEffect, useState } from 'react'
 import { exportAnalyticsXLSX } from '@/lib/export'
 
+interface AdminAnalytics {
+  summary: { totalTeachers: number; totalSessions: number; activeSessions: number; totalRecords: number; flaggedRecords: number }
+  byTeacher: Array<{
+    profile: { id: string; full_name: string; email: string; department: string | null }
+    sessionCount: number; activeCount: number; scanCount: number
+  }>
+  bySubject: Array<{ code: string; name: string; scans: number; count: number }>
+  dailyActivity?: Array<{ date: string; count: number }>
+}
+
 export default function AdminAnalyticsPage() {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<AdminAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -28,6 +38,7 @@ export default function AdminAnalyticsPage() {
     )
   }
 
+  if (!data) return <p style={{ color: 'var(--danger)' }}>Analytics could not be loaded.</p>
   const { summary, byTeacher, bySubject } = data
 
   return (
@@ -79,7 +90,7 @@ export default function AdminAnalyticsPage() {
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
           <h2 style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700 }}>By Teacher</h2>
         </div>
-        {byTeacher.map((teacher: any, index: number) => (
+        {byTeacher.map((teacher, index) => (
           <div key={teacher.profile.id} style={{
             padding: '12px 20px',
             borderBottom: index < byTeacher.length - 1 ? '1px solid var(--border)' : 'none',
@@ -119,7 +130,7 @@ export default function AdminAnalyticsPage() {
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
           <h2 style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700 }}>Top Subjects by Attendance</h2>
         </div>
-        {bySubject.map((subject: any, index: number) => (
+        {bySubject.map((subject, index) => (
           <div key={subject.code} style={{
             padding: '12px 20px',
             borderBottom: index < bySubject.length - 1 ? '1px solid var(--border)' : 'none',

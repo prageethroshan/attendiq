@@ -12,7 +12,7 @@ export async function GET() {
 
     const { data: sessions } = await supabase
       .from('sessions')
-      .select('id, subject_code, subject_name, created_at, is_active, enrolled_ids')
+      .select('id, subject_code, subject_name, created_at, is_active')
       .eq('teacher_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -28,6 +28,15 @@ export async function GET() {
     }
 
     const sessionIds = sessions.map(session => session.id)
+
+    const { data: enrollments } = await supabase
+      .from('session_enrollments')
+      .select('session_id, student_id')
+      .in('session_id', sessionIds)
+    const enrollmentCount = new Map<string, number>()
+    for (const enrollment of enrollments ?? []) {
+      enrollmentCount.set(enrollment.session_id, (enrollmentCount.get(enrollment.session_id) ?? 0) + 1)
+    }
 
     const { data: records } = await supabase
       .from('attendance_records')
@@ -63,22 +72,24 @@ export async function GET() {
 
       const entry = subjectMap.get(key)!
       entry.sessionCount++
-      entry.enrolledTotal += session.enrolled_ids?.length ?? 0
+      entry.enrolledTotal += enrollmentCount.get(session.id) ?? 0
 
       const sessionRecords = allRecords.filter(record => record.session_id === session.id)
-      entry.totalCount += sessionRecords.length
+      entry.totalCount += enrollmentCount.get(session.id) ?? 0
       entry.presentCount += sessionRecords.filter(record => record.status === 'Present').length
     }
 
     const bySubject = Array.from(subjectMap.values()).map(subject => ({
       ...subject,
-      attendanceRate: subject.totalCount > 0
-        ? Math.round((subject.presentCount / subject.totalCount) * 100)
+      attendanceRate: subject.enrolledTotal > 0
+        ? Math.round((subject.presentCount / subject.enrolledTotal) * 100)
         : 0,
     })).sort((a, b) => b.sessionCount - a.sessionCount)
 
-    const avgRate = bySubject.length > 0
-      ? Math.round(bySubject.reduce((sum, subject) => sum + subject.attendanceRate, 0) / bySubject.length)
+    const totalExpected = bySubject.reduce((sum, subject) => sum + subject.enrolledTotal, 0)
+    const totalPresent = bySubject.reduce((sum, subject) => sum + subject.presentCount, 0)
+    const avgRate = totalExpected > 0
+      ? Math.round((totalPresent / totalExpected) * 100)
       : 0
 
     const recentSessions = sessions.slice(0, 10).map(session => {
@@ -90,9 +101,9 @@ export async function GET() {
         created_at: session.created_at,
         is_active: session.is_active,
         scanned: sessionRecords.length,
-        enrolled: session.enrolled_ids?.length ?? 0,
-        rate: sessionRecords.length > 0 && session.enrolled_ids?.length > 0
-          ? Math.round((sessionRecords.length / session.enrolled_ids.length) * 100)
+        enrolled: enrollmentCount.get(session.id) ?? 0,
+        rate: (enrollmentCount.get(session.id) ?? 0) > 0
+          ? Math.round((sessionRecords.length / (enrollmentCount.get(session.id) ?? 1)) * 100)
           : null,
       }
     })

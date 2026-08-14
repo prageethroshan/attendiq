@@ -1,36 +1,17 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
-
-async function verifyAdmin() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const service = createServiceSupabaseClient()
-  const { data: profile } = await service
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  return profile?.role === 'admin' || user.user_metadata?.role === 'admin'
-    ? user
-    : null
-}
+import { requireAdminApi } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const admin = await verifyAdmin()
-    if (!admin) {
-      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
-    }
+    const admin = await requireAdminApi()
+    if (admin.error) return admin.error
 
     const service = createServiceSupabaseClient()
 
     const { data: sessions } = await service
       .from('sessions')
-      .select('id, subject_code, subject_name, teacher_id, is_active, created_at, enrolled_ids')
+      .select('id, subject_code, subject_name, teacher_id, is_active, created_at')
 
     const { data: records } = await service
       .from('attendance_records')
@@ -55,7 +36,7 @@ export async function GET() {
     const flaggedRecords = allRecords.filter(record => record.geo_verified === false).length
 
     const teacherMap = new Map<string, {
-      profile: any
+      profile: { id: string; full_name: string; email: string; department: string | null }
       sessionCount: number
       scanCount: number
       activeCount: number

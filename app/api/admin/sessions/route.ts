@@ -1,30 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
-
-async function verifyAdmin() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const service = createServiceSupabaseClient()
-  const { data: profile } = await service
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  return profile?.role === 'admin' || user.user_metadata?.role === 'admin'
-    ? user
-    : null
-}
+import { requireAdminApi } from '@/lib/auth'
 
 export async function GET(req: Request) {
   try {
-    const admin = await verifyAdmin()
-    if (!admin) {
-      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
-    }
+    const admin = await requireAdminApi()
+    if (admin.error) return admin.error
 
     const { searchParams } = new URL(req.url)
     const filter = searchParams.get('filter')
@@ -32,7 +13,7 @@ export async function GET(req: Request) {
 
     let sessionQuery = service
       .from('sessions')
-      .select('*')
+      .select('id, token, short_code, subject_code, subject_name, teacher_id, teacher_name, is_active, expires_at, geo_lat, geo_lng, geo_radius_m, created_at')
       .order('created_at', { ascending: false })
 
     if (filter === 'active') sessionQuery = sessionQuery.eq('is_active', true)
@@ -60,13 +41,22 @@ export async function GET(req: Request) {
       countMap.set(record.session_id, (countMap.get(record.session_id) ?? 0) + 1)
     }
 
+    const { data: enrollments } = await service
+      .from('session_enrollments')
+      .select('session_id')
+      .in('session_id', sessionIds)
+    const enrollmentMap = new Map<string, number>()
+    for (const enrollment of enrollments ?? []) {
+      enrollmentMap.set(enrollment.session_id, (enrollmentMap.get(enrollment.session_id) ?? 0) + 1)
+    }
+
     const teacherIds = Array.from(new Set(sessions.map(session => session.teacher_id)))
     const { data: profiles } = await service
       .from('profiles')
       .select('id, full_name, email, department')
       .in('id', teacherIds)
 
-    const profileMap = new Map<string, any>()
+    const profileMap = new Map<string, { id: string; full_name: string; email: string; department: string | null }>()
     for (const profile of profiles ?? []) {
       profileMap.set(profile.id, profile)
     }
@@ -81,6 +71,7 @@ export async function GET(req: Request) {
           department: profile?.department ?? null,
         },
         attendance_records: [{ count: countMap.get(session.id) ?? 0 }],
+        enrolled_count: enrollmentMap.get(session.id) ?? 0,
       }
     })
 

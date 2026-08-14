@@ -74,7 +74,7 @@ export default function DashboardNav({ showAdminTabs = false }: DashboardNavProp
         .select('role')
         .eq('id', user.id)
         .single()
-      setClientIsAdmin(data?.role === 'admin' || user.user_metadata?.role === 'admin')
+      setClientIsAdmin(data?.role === 'admin')
     }
 
     loadAdminRole()

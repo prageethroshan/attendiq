@@ -6,18 +6,22 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run lib/validation.test.ts --maxWorkers=1 --pool=vmThreads",
+    "check": "npm run lint && npm run typecheck && npm run test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
-    "next": "16.2.6",
+    "exceljs": "^4.4.0",
+    "next": "^16.3.1",
     "papaparse": "^5.5.3",
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "swr": "^2.4.1",
-    "xlsx": "^0.18.5"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -26,8 +30,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "^16.3.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "brace-expansion": "1.1.18",
+    "uuid": "11.1.1"
   }
 }

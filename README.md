@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AttendIQ
 
-## Getting Started
+AttendIQ is a Next.js and Supabase attendance application for teacher-managed sessions, rotating QR codes, roster-based attendance, manual marking, analytics, exports, and administration.
 
-First, run the development server:
+## Security model
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Admin access is derived only from the server-controlled `profiles.role` column.
+- Teachers can access only their own sessions and attendance; admin APIs perform a database-backed role check before using the service-role client.
+- Student identity fields come from the enrolled roster. Public attendance requests cannot change the student master record.
+- Public lookup remains ID-only by product decision. Its response is intentionally minimized and rate-limited, but it is not strong identity verification.
+- Geolocation is a risk signal. Missing or out-of-range location is flagged but does not reject attendance.
+- The signed device cookie is a duplicate-submission signal, not proof of a physical device or student identity.
+
+## Setup
+
+1. Install dependencies with `npm install`.
+2. Copy `.env.example` to `.env.local` and provide the Supabase values plus a long random `RATE_LIMIT_SECRET`.
+3. Link the Supabase CLI to the intended project.
+4. Apply migrations with `supabase db push`.
+5. Start development with `npm run dev`.
+
+The migration under `supabase/migrations/` must be applied before deploying matching application code. It normalizes session enrollment, protects profile roles, archives legacy duplicate attendance records, adds uniqueness constraints, and installs atomic rate limiting.
+
+To bootstrap the first administrator, set that user's `profiles.role` to `admin` directly through a trusted database administration channel. Never place authorization roles in user-editable metadata.
+
+## CSV roster format
+
+```csv
+Student ID,Full Name,Year,Department
+MGT/2025/001,Kasun Perera,1,Business Management
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Uploads are all-or-nothing. Existing student identity fields are immutable through teacher uploads; conflicting details are reported for administrator review.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Verification
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run check
+npm run build
+```
 
-## Learn More
+`npm run check` runs ESLint, TypeScript, and Vitest. Critical deployment testing should also exercise migrations and RLS against a disposable Supabase project.
 
-To learn more about Next.js, take a look at the following resources:
+## Main routes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/dashboard`: teacher sessions, analytics, logs, rosters, and QR panels
+- `/admin`: administrator monitoring and account management
+- `/session/[token]`: public roster-based check-in
+- `/lookup`: public, rate-limited ID-only attendance summary
+- `/manual`: enter a short session code
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Keep `SUPABASE_SERVICE_ROLE_KEY` and `RATE_LIMIT_SECRET` server-only.
+- Set `NEXT_PUBLIC_BASE_URL` to the deployed HTTPS origin.
+- Run migrations before switching application traffic.
+- Review `attendance_record_duplicate_archive` after migration; it preserves duplicate records removed from the active log before unique indexes are created.
+- Monitor `429`, `503`, failed geolocation, and duplicate constraint rates after rollout.

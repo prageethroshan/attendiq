@@ -12,12 +12,15 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const rawQuery = searchParams.get('q')?.trim() ?? ''
+    const rawQuery = searchParams.get('q')?.trim().slice(0, 80) ?? ''
     const query = rawQuery.toUpperCase()
     const sessionId = searchParams.get('session_id')
 
     if (query.length < 2) {
       return NextResponse.json([])
+    }
+    if (/[,%()]/.test(rawQuery)) {
+      return NextResponse.json({ error: 'Search contains unsupported characters.' }, { status: 400 })
     }
 
     const service = createServiceSupabaseClient()
@@ -26,7 +29,7 @@ export async function GET(req: Request) {
     if (sessionId) {
       const { data: session } = await supabase
         .from('sessions')
-        .select('enrolled_ids')
+        .select('id')
         .eq('id', sessionId)
         .eq('teacher_id', user.id)
         .single()
@@ -35,7 +38,11 @@ export async function GET(req: Request) {
         return NextResponse.json([])
       }
 
-      enrolledIds = session.enrolled_ids ?? null
+      const { data: enrollments } = await service
+        .from('session_enrollments')
+        .select('student_id')
+        .eq('session_id', sessionId)
+      enrolledIds = (enrollments ?? []).map(enrollment => enrollment.student_id)
     }
 
     const { data: students } = await service
@@ -46,9 +53,9 @@ export async function GET(req: Request) {
 
     let results = students ?? []
 
-    if (enrolledIds && enrolledIds.length > 0) {
+    if (sessionId) {
       results = results.filter(student =>
-        enrolledIds.includes(student.student_id)
+        enrolledIds?.includes(student.student_id)
       )
     }
 
