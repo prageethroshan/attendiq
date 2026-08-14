@@ -13,7 +13,6 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [qrSession, setQrSession] = useState<Session | null>(null)
-  const [uploadSession, setUploadSession] = useState<Session | null>(null)
   const [manualSession, setManualSession] = useState<Session | null>(null)
   const [showStandaloneUpload, setShowStandaloneUpload] = useState(false)
 
@@ -86,19 +85,9 @@ export default function SessionsPage() {
       )}
 
       {/* ── Enrollment Upload Modal ── */}
-      {(uploadSession || showStandaloneUpload) && (
+      {showStandaloneUpload && (
         <EnrollmentUpload
-          sessionId={uploadSession?.id}
-          onComplete={studentIds => {
-            if (!uploadSession) return
-            setSessions(prev => prev.map(session =>
-              session.id === uploadSession.id
-                ? { ...session, enrolled_count: studentIds.length }
-                : session
-            ))
-          }}
           onClose={() => {
-            setUploadSession(null)
             setShowStandaloneUpload(false)
           }}
         />
@@ -169,7 +158,6 @@ export default function SessionsPage() {
                 session={session}
                 onEnded={handleEnded}
                 onOpen={handleOpen}
-                onUpload={setUploadSession}
                 onManual={setManualSession}
               />
             ))}
@@ -220,10 +208,10 @@ export default function SessionsPage() {
             }}>
               <div>
                 <h2 style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700 }}>
-                  Student Enrollment
+                  Student Database
                 </h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
-                  Upload a class list to enroll students into the system
+                  Upload students once; sessions automatically select them by academic year and department
                 </p>
               </div>
               <button

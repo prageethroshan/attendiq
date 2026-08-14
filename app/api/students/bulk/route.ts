@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceSupabaseClient } from '@/lib/supabase/service'
-import { rosterStudentSchema } from '@/lib/validation'
+import { academicYearFromStudentId, rosterStudentSchema } from '@/lib/validation'
 
 export async function POST(req: Request) {
   try {
@@ -12,11 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
     }
 
-    const { students, session_id } = await req.json()
-
-    if (!session_id) {
-      return NextResponse.json({ error: 'session_id is required.' }, { status: 400 })
-    }
+    const { students } = await req.json()
 
     if (!Array.isArray(students) || students.length === 0) {
       return NextResponse.json(
@@ -33,13 +29,20 @@ export async function POST(req: Request) {
     }
 
     const errors: string[] = []
-    const cleaned: Array<{ student_id: string; name: string; year: string; department: string }> = []
+    const cleaned: Array<{
+      student_id: string; name: string; year: string; department: string; academic_year: number
+    }> = []
     students.forEach((student: unknown, index: number) => {
       const parsed = rosterStudentSchema.safeParse(student)
       if (!parsed.success) {
         errors.push(`Row ${index + 2}: ${parsed.error.issues[0]?.message ?? 'Invalid student'}`)
       } else {
-        cleaned.push(parsed.data)
+        const academicYear = academicYearFromStudentId(parsed.data.student_id)
+        if (!academicYear) {
+          errors.push(`Row ${index + 2}: Academic year could not be read from Student ID`)
+        } else {
+          cleaned.push({ ...parsed.data, academic_year: academicYear })
+        }
       }
     })
 
@@ -52,27 +55,18 @@ export async function POST(req: Request) {
 
     const service = createServiceSupabaseClient()
 
-    const { data: session } = await supabase
-      .from('sessions')
-      .select('id')
-      .eq('id', session_id)
-      .eq('teacher_id', user.id)
-      .single()
-    if (!session) {
-      return NextResponse.json({ error: 'Session not found or forbidden.' }, { status: 404 })
-    }
-
     const studentIds = cleaned.map(student => student.student_id)
     const { data: existingStudents } = await service
       .from('students')
-      .select('student_id, name, year, department')
+      .select('student_id, name, year, department, academic_year')
       .in('student_id', studentIds)
     const existingMap = new Map((existingStudents ?? []).map(student => [student.student_id, student]))
     const conflicts = cleaned.filter(student => {
       const existing = existingMap.get(student.student_id)
       return existing && (
         existing.name !== student.name || String(existing.year) !== student.year ||
-        (existing.department ?? '') !== student.department
+        (existing.department ?? '') !== student.department ||
+        existing.academic_year !== student.academic_year
       )
     })
     if (conflicts.length > 0) {
@@ -83,9 +77,7 @@ export async function POST(req: Request) {
     }
 
     const newStudents = cleaned.filter(student => !existingMap.has(student.student_id))
-    const { error: importError } = await service.rpc('import_session_roster', {
-      p_session_id: session_id,
-      p_teacher_id: user.id,
+    const { error: importError } = await service.rpc('import_students', {
       p_students: cleaned,
     })
     if (importError) {
@@ -95,7 +87,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       created: newStudents.length,
-      enrolled: studentIds.length,
       inserted: studentIds.length,
       conflicts: [],
       errors: [],

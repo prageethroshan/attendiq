@@ -8,6 +8,8 @@ export type Session = {
   teacher_name: string
   is_active: boolean
   expires_at: string
+  academic_year: number | null
+  target_department: string | null
   enrolled_count?: number
   geo_lat: number | null
   geo_lng: number | null
@@ -35,6 +37,7 @@ export type Student = {
   student_id: string
   name: string
   year: string
+  academic_year: number | null
   department: string
   created_at: string
 }

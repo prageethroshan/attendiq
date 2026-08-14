@@ -7,11 +7,10 @@ interface Props {
   session: Session
   onEnded: (id: string) => void
   onOpen: (session: Session) => void
-  onUpload: (session: Session) => void
   onManual: (session: Session) => void
 }
 
-export default function SessionCard({ session, onEnded, onOpen, onUpload, onManual }: Props) {
+export default function SessionCard({ session, onEnded, onOpen, onManual }: Props) {
   const [ending, setEnding] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [timeLeft, setTimeLeft] = useState('')
@@ -96,6 +95,11 @@ export default function SessionCard({ session, onEnded, onOpen, onUpload, onManu
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
             {session.subject_name}
           </p>
+          {session.academic_year && session.target_department && (
+            <p style={{ color: 'var(--em)', fontSize: 11, marginTop: 5 }}>
+              {session.academic_year} · {session.target_department}
+            </p>
+          )}
         </div>
 
         {/* Short code */}
@@ -144,7 +148,7 @@ export default function SessionCard({ session, onEnded, onOpen, onUpload, onManu
             label: 'Enrolled',
             value: session.enrolled_count
               ? `${session.enrolled_count} students`
-              : 'Roster required',
+              : 'No students',
             color: 'var(--text)',
           },
         ].map(stat => (
@@ -178,28 +182,6 @@ export default function SessionCard({ session, onEnded, onOpen, onUpload, onManu
             <rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
           Open QR Panel
-        </button>
-
-        <button
-          onClick={() => onUpload(session)}
-          className="btn-ghost"
-          style={{
-            flex: 1,
-            padding: '9px 16px',
-            fontSize: 13,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-          }}
-          title="Upload enrollment list"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <polyline points="16 16 12 12 8 16"/>
-            <line x1="12" y1="12" x2="12" y2="21"/>
-            <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
-          </svg>
-          Enroll
         </button>
 
         <button

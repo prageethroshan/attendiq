@@ -1,12 +1,13 @@
 # AttendIQ
 
-AttendIQ is a Next.js and Supabase attendance application for teacher-managed sessions, rotating QR codes, roster-based attendance, manual marking, analytics, exports, and administration.
+AttendIQ is a Next.js and Supabase attendance application for teacher-managed sessions, rotating QR codes, cohort-based attendance, manual marking, analytics, exports, and administration.
 
 ## Security model
 
 - Admin access is derived only from the server-controlled `profiles.role` column.
 - Teachers can access only their own sessions and attendance; admin APIs perform a database-backed role check before using the service-role client.
-- Student identity fields come from the enrolled roster. Public attendance requests cannot change the student master record.
+- Students are uploaded once to the student database. Each new session snapshots all students matching its academic year and department.
+- Student identity fields come from that cohort snapshot. Public attendance requests cannot change the student master record.
 - Public lookup remains ID-only by product decision. Its response is intentionally minimized and rate-limited, but it is not strong identity verification.
 - Geolocation is a risk signal. Missing or out-of-range location is flagged but does not reject attendance.
 - The signed device cookie is a duplicate-submission signal, not proof of a physical device or student identity.
@@ -19,11 +20,13 @@ AttendIQ is a Next.js and Supabase attendance application for teacher-managed se
 4. Apply migrations with `supabase db push`.
 5. Start development with `npm run dev`.
 
-The migration under `supabase/migrations/` must be applied before deploying matching application code. It normalizes session enrollment, protects profile roles, archives legacy duplicate attendance records, adds uniqueness constraints, and installs atomic rate limiting.
+The migrations under `supabase/migrations/` must be applied before deploying matching application code. They normalize session enrollment, protect profile roles, add cohort targeting, archive legacy duplicate attendance records, add uniqueness constraints, and install atomic rate limiting.
 
 To bootstrap the first administrator, set that user's `profiles.role` to `admin` directly through a trusted database administration channel. Never place authorization roles in user-editable metadata.
 
-## CSV roster format
+## Student CSV format
+
+Upload the student list once from the dashboard. Student IDs must contain the academic intake year (for example, `MGT/2025/001`), and every row must include a department. When creating a session, choose an academic year and department; all matching students become that session's expected attendance list automatically.
 
 ```csv
 Student ID,Full Name,Year,Department
@@ -43,9 +46,9 @@ npm run build
 
 ## Main routes
 
-- `/dashboard`: teacher sessions, analytics, logs, rosters, and QR panels
+- `/dashboard`: teacher sessions, analytics, logs, student database, and QR panels
 - `/admin`: administrator monitoring and account management
-- `/session/[token]`: public roster-based check-in
+- `/session/[token]`: public cohort-based check-in
 - `/lookup`: public, rate-limited ID-only attendance summary
 - `/manual`: enter a short session code
 

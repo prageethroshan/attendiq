@@ -11,14 +11,12 @@ interface Student {
 }
 
 interface Props {
-  sessionId?: string
-  onComplete?: (studentIds: string[]) => void
   onClose: () => void
 }
 
 type UploadState = 'idle' | 'preview' | 'uploading' | 'done' | 'error'
 
-export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Props) {
+export default function EnrollmentUpload({ onClose }: Props) {
   const [uploadState, setUploadState] = useState<UploadState>('idle')
   const [students, setStudents] = useState<Student[]>([])
   const [parseErrors, setParseErrors] = useState<string[]>([])
@@ -120,7 +118,6 @@ export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Pro
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         students,
-        session_id: sessionId ?? null,
       }),
     })
 
@@ -134,7 +131,6 @@ export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Pro
 
     setUploadResult({ inserted: data.inserted, errors: data.errors ?? [] })
     setUploadState('done')
-    onComplete?.(data.studentIds ?? [])
   }
 
   function downloadTemplate() {
@@ -190,12 +186,10 @@ export default function EnrollmentUpload({ sessionId, onComplete, onClose }: Pro
           }}>
             <div>
               <h2 style={{ color: 'var(--text)', fontSize: 18, fontWeight: 700 }}>
-                Upload Enrollment List
+                Upload Student List
               </h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
-                {sessionId
-                  ? 'Students will be enrolled in this session'
-                  : 'Students will be added to the system'}
+                Students are added once and used for matching cohort sessions
               </p>
             </div>
             <button
@@ -478,8 +472,7 @@ ACF/2025/002,Nimali Fernando,1,Accountancy & Finance`}
                 Upload Complete
               </h3>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>
-                {uploadResult.inserted} student{uploadResult.inserted !== 1 ? 's' : ''} enrolled successfully.
-                {sessionId && ' Session enrollment list updated.'}
+                {uploadResult.inserted} student{uploadResult.inserted !== 1 ? 's' : ''} processed successfully.
               </p>
 
               {uploadResult.errors.length > 0 && (

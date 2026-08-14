@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
     let sessionQuery = service
       .from('sessions')
-      .select('id, token, short_code, subject_code, subject_name, teacher_id, teacher_name, is_active, expires_at, geo_lat, geo_lng, geo_radius_m, created_at')
+      .select('id, token, short_code, subject_code, subject_name, teacher_id, teacher_name, is_active, expires_at, academic_year, target_department, geo_lat, geo_lng, geo_radius_m, created_at')
       .order('created_at', { ascending: false })
 
     if (filter === 'active') sessionQuery = sessionQuery.eq('is_active', true)

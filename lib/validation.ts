@@ -17,6 +17,8 @@ export const createSessionSchema = z.object({
   subject_code: z.string().trim().min(1).max(20).transform(value => value.toUpperCase()),
   subject_name: z.string().trim().min(1).max(160),
   duration_minutes: z.number().int().min(5).max(480),
+  academic_year: z.number().int().min(2000).max(2100),
+  target_department: z.string().trim().min(1).max(160),
   geo_lat: latitude.nullable().default(null),
   geo_lng: longitude.nullable().default(null),
   geo_radius_m: z.number().int().min(10).max(5000).nullable().default(null),
@@ -46,8 +48,13 @@ export const rosterStudentSchema = z.object({
   student_id: studentIdSchema,
   name: z.string().trim().min(1).max(160),
   year: z.coerce.string().trim().regex(/^\d{1,2}$/, 'Year must be numeric.'),
-  department: z.string().trim().max(160).default(''),
+  department: z.string().trim().min(1, 'Department is required.').max(160),
 })
+
+export function academicYearFromStudentId(studentId: string): number | null {
+  const match = studentId.match(/^[A-Z]{2,6}\/(\d{4})\/\d{2,4}$/)
+  return match ? Number(match[1]) : null
+}
 
 export function validationError(error: z.ZodError) {
   return error.issues[0]?.message ?? 'Invalid request.'

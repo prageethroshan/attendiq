@@ -83,7 +83,7 @@ export async function GET(
 
     const { data: session, error } = await supabase
       .from('sessions')
-      .select('id, token, short_code, subject_code, subject_name, teacher_id, teacher_name, is_active, expires_at, geo_lat, geo_lng, geo_radius_m, created_at')
+      .select('id, token, short_code, subject_code, subject_name, teacher_id, teacher_name, is_active, expires_at, academic_year, target_department, geo_lat, geo_lng, geo_radius_m, created_at')
       .eq('id', id)
       .eq('teacher_id', user.id)
       .single()

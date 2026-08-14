@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   attendanceSchema,
+  academicYearFromStudentId,
   createSessionSchema,
   paginationSchema,
   rosterStudentSchema,
@@ -17,15 +18,32 @@ describe('studentIdSchema', () => {
     expect(studentIdSchema.safeParse('MGT').success).toBe(false)
     expect(studentIdSchema.safeParse('MGT-2025-001').success).toBe(false)
   })
+
+  it('extracts the academic year from a valid student ID', () => {
+    expect(academicYearFromStudentId('MGT/2025/001')).toBe(2025)
+    expect(academicYearFromStudentId('invalid')).toBeNull()
+  })
 })
 
 describe('request validation', () => {
   it('requires complete geolocation configuration', () => {
     const result = createSessionSchema.safeParse({
       subject_code: 'is-101', subject_name: 'Information Systems', duration_minutes: 60,
+      academic_year: 2025, target_department: 'Management',
       geo_lat: 6.9271,
     })
     expect(result.success).toBe(false)
+  })
+
+  it('requires a target academic year and department', () => {
+    expect(createSessionSchema.safeParse({
+      subject_code: 'IS-101', subject_name: 'Information Systems', duration_minutes: 60,
+    }).success).toBe(false)
+
+    expect(createSessionSchema.safeParse({
+      subject_code: 'IS-101', subject_name: 'Information Systems', duration_minutes: 60,
+      academic_year: 2025, target_department: 'Management',
+    }).success).toBe(true)
   })
 
   it('rejects invalid coordinates and pagination', () => {

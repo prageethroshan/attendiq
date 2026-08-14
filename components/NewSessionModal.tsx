@@ -18,6 +18,12 @@ interface SubjectGroup {
   subjects: Subject[]
 }
 
+interface Cohort {
+  academic_year: number
+  department: string
+  student_count: number
+}
+
 const DURATIONS = [
   { label: '30 min', value: 30 },
   { label: '1 hour', value: 60 },
@@ -35,7 +41,11 @@ interface Props {
 export default function NewSessionModal({ onClose, onCreated }: Props) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [subjectsLoading, setSubjectsLoading] = useState(true)
+  const [cohorts, setCohorts] = useState<Cohort[]>([])
+  const [cohortsLoading, setCohortsLoading] = useState(true)
   const [subjectCode, setSubjectCode] = useState('')
+  const [academicYear, setAcademicYear] = useState('')
+  const [targetDepartment, setTargetDepartment] = useState('')
   const [duration, setDuration] = useState(60)
   const [geoEnabled, setGeoEnabled] = useState(false)
   const [geoRadius, setGeoRadius] = useState(100)
@@ -65,6 +75,13 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
         setSubjectsLoading(false)
       })
       .catch(() => setSubjectsLoading(false))
+    fetch('/api/students/cohorts')
+      .then(r => r.json())
+      .then(data => {
+        setCohorts(Array.isArray(data) ? data : [])
+        setCohortsLoading(false)
+      })
+      .catch(() => setCohortsLoading(false))
   }, [])
 
   function groupSubjects(subjects: Subject[]): SubjectGroup[] {
@@ -97,6 +114,10 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
 
   const selectedSubject = subjects.find(subject => subject.code === subjectCode)
   const groups = groupSubjects(subjects)
+  const academicYears = Array.from(new Set(cohorts.map(cohort => cohort.academic_year)))
+    .sort((a, b) => b - a)
+  const departments = cohorts.filter(cohort => String(cohort.academic_year) === academicYear)
+  const selectedCohort = departments.find(cohort => cohort.department === targetDepartment)
 
   async function handleAddSubject() {
     if (!newCode.trim() || !newName.trim()) {
@@ -156,6 +177,10 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
       setError('Please select a subject.')
       return
     }
+    if (!academicYear || !targetDepartment) {
+      setError('Please select an academic year and department.')
+      return
+    }
     if (geoEnabled && !geoCoords) {
       setError('Please capture your classroom location first.')
       return
@@ -172,6 +197,8 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
         subject_code: selectedSubject.code,
         subject_name: selectedSubject.name,
         duration_minutes: duration,
+        academic_year: Number(academicYear),
+        target_department: targetDepartment,
         geo_lat: geoEnabled ? geoCoords?.lat : null,
         geo_lng: geoEnabled ? geoCoords?.lng : null,
         geo_radius_m: geoEnabled ? geoRadius : null,
@@ -451,6 +478,64 @@ export default function NewSessionModal({ onClose, onCreated }: Props) {
                       Custom
                     </span>
                   )}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="field-label">Student Cohort</label>
+              {cohortsLoading ? (
+                <div className="input" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+                  Loading academic years and departments...
+                </div>
+              ) : cohorts.length === 0 ? (
+                <div style={{
+                  background: 'rgba(248,113,113,0.08)',
+                  border: '1px solid rgba(248,113,113,0.2)',
+                  borderRadius: 8, padding: '10px 12px',
+                  color: 'var(--danger)', fontSize: 12,
+                }}>
+                  No student cohorts found. Upload the student database before creating a session.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 10 }}>
+                  <div>
+                    <label className="field-label">Academic Year</label>
+                    <select
+                      value={academicYear}
+                      onChange={event => {
+                        setAcademicYear(event.target.value)
+                        setTargetDepartment('')
+                      }}
+                      className="input"
+                      style={{ cursor: 'pointer', fontSize: 13 }}
+                    >
+                      <option value="">Select year</option>
+                      {academicYears.map(year => <option key={year} value={year}>{year}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="field-label">Department</label>
+                    <select
+                      value={targetDepartment}
+                      onChange={event => setTargetDepartment(event.target.value)}
+                      disabled={!academicYear}
+                      className="input"
+                      style={{ cursor: academicYear ? 'pointer' : 'not-allowed', fontSize: 13 }}
+                    >
+                      <option value="">Select department</option>
+                      {departments.map(cohort => (
+                        <option key={cohort.department} value={cohort.department}>
+                          {cohort.department} ({cohort.student_count})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+              {selectedCohort && (
+                <p style={{ color: 'var(--em)', fontSize: 12, marginTop: 7 }}>
+                  {selectedCohort.student_count} registered students will be expected.
                 </p>
               )}
             </div>
