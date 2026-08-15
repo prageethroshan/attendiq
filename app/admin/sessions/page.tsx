@@ -12,11 +12,14 @@ interface AdminSession {
 export default function AdminSessionsPage() {
   const [sessions, setSessions] = useState<AdminSession[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const [filter, setFilter] = useState<'all' | 'active' | 'history'>('all')
   const [searchTeacher, setSearch] = useState('')
 
-  useEffect(() => {
+  function loadSessions() {
     setLoading(true)
+    setError('')
     const params = filter !== 'all' ? `?filter=${filter}` : ''
     fetch(`/api/admin/sessions${params}`)
       .then(response => response.json())
@@ -24,7 +27,41 @@ export default function AdminSessionsPage() {
         setSessions(Array.isArray(data) ? data : [])
         setLoading(false)
       })
+      .catch(() => {
+        setError('Failed to load sessions.')
+        setLoading(false)
+      })
+  }
+
+  useEffect(() => {
+    loadSessions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
+
+  async function deleteSession(session: AdminSession) {
+    const confirmed = window.confirm(
+      `Delete ${session.subject_code} - ${session.subject_name}?\n\nThis permanently removes the session, its attendance records, and its enrolled roster snapshot.`
+    )
+    if (!confirmed) return
+
+    setDeletingId(session.id)
+    setError('')
+    try {
+      const response = await fetch(`/api/admin/sessions/${session.id}`, {
+        method: 'DELETE',
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error ?? 'Failed to delete session.')
+        return
+      }
+      setSessions(prev => prev.filter(item => item.id !== session.id))
+    } catch {
+      setError('Failed to delete session.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const filtered = sessions.filter(session =>
     !searchTeacher ||
@@ -79,6 +116,20 @@ export default function AdminSessionsPage() {
         />
       </div>
 
+      {error && (
+        <div style={{
+          background: 'rgba(248,113,113,0.08)',
+          border: '1px solid rgba(248,113,113,0.2)',
+          borderRadius: 8,
+          color: 'var(--danger)',
+          fontSize: 13,
+          padding: '10px 12px',
+          marginBottom: 16,
+        }}>
+          {error}
+        </div>
+      )}
+
       <div className="glass" style={{ overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center' }}>
@@ -96,7 +147,7 @@ export default function AdminSessionsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
-                  {['Subject', 'Teacher', 'Department', 'Status', 'Scans', 'Started', 'Expires'].map(header => (
+                  {['Subject', 'Teacher', 'Department', 'Status', 'Scans', 'Started', 'Expires', 'Actions'].map(header => (
                     <th key={header} style={{
                       padding: '10px 14px', textAlign: 'left',
                       color: 'var(--text-muted)', fontWeight: 600,
@@ -155,6 +206,24 @@ export default function AdminSessionsPage() {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
+                    </td>
+                    <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                      <button
+                        onClick={() => deleteSession(session)}
+                        disabled={deletingId === session.id}
+                        style={{
+                          fontSize: 12,
+                          padding: '5px 10px',
+                          borderRadius: 7,
+                          border: '1px solid rgba(248,113,113,0.2)',
+                          background: 'rgba(248,113,113,0.08)',
+                          color: 'var(--danger)',
+                          cursor: deletingId === session.id ? 'not-allowed' : 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {deletingId === session.id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}
