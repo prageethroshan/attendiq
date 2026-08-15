@@ -31,6 +31,22 @@ export async function PATCH(
     }
 
     const service = createServiceSupabaseClient()
+    if (parsed.data.department) {
+      const { data: department } = await service
+        .from('departments')
+        .select('name')
+        .eq('name', parsed.data.department)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (!department) {
+        return NextResponse.json(
+          { error: 'Select an active department from the controlled department list.' },
+          { status: 400 }
+        )
+      }
+    }
+
     const { data, error } = await service
       .from('students')
       .update(parsed.data)

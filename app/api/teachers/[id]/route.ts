@@ -13,6 +13,7 @@ export async function PATCH(
     const { id } = await params
     const body = await req.json()
     const service = createServiceSupabaseClient()
+    const cleanDepartment = typeof body.department === 'string' ? body.department.trim() : body.department
 
     if (body.new_password && (typeof body.new_password !== 'string' || body.new_password.length < 8)) {
       return NextResponse.json(
@@ -23,10 +24,25 @@ export async function PATCH(
     if ('is_active' in body && typeof body.is_active !== 'boolean') {
       return NextResponse.json({ error: 'is_active must be a boolean.' }, { status: 400 })
     }
+    if ('department' in body && cleanDepartment) {
+      const { data: knownDepartment } = await service
+        .from('departments')
+        .select('name')
+        .eq('name', cleanDepartment)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (!knownDepartment) {
+        return NextResponse.json(
+          { error: 'Select an active department from the controlled department list.' },
+          { status: 400 }
+        )
+      }
+    }
 
     const profileUpdates: Record<string, unknown> = {}
     if ('full_name' in body) profileUpdates.full_name = body.full_name
-    if ('department' in body) profileUpdates.department = body.department
+    if ('department' in body) profileUpdates.department = cleanDepartment || null
     if ('is_active' in body) profileUpdates.is_active = body.is_active
 
     if ('is_active' in body) {

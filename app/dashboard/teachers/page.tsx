@@ -11,8 +11,14 @@ interface Profile {
   created_at: string
 }
 
+interface Department {
+  name: string
+  is_active: boolean
+}
+
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Profile[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [actionId, setActionId] = useState<string | null>(null)
@@ -41,8 +47,15 @@ export default function TeachersPage() {
     setLoading(false)
   }
 
+  async function loadDepartments() {
+    const res = await fetch('/api/departments')
+    const data = await res.json()
+    if (res.ok) setDepartments(Array.isArray(data) ? data : [])
+  }
+
   useEffect(() => {
     loadTeachers()
+    loadDepartments()
   }, [])
 
   async function handleCreate() {
@@ -361,12 +374,9 @@ export default function TeachersPage() {
                     style={{ fontSize: 14, cursor: 'pointer' }}
                   >
                     <option value="">- Select -</option>
-                    <option value="Accountancy & Finance">Accountancy &amp; Finance</option>
-                    <option value="Business Management">Business Management</option>
-                    <option value="Information Systems">Information Systems</option>
-                    <option value="Marketing Management">Marketing Management</option>
-                    <option value="Human Resource Management">Human Resource Management</option>
-                    <option value="Tourism & Hospitality">Tourism &amp; Hospitality</option>
+                    {departments.map(item => (
+                      <option key={item.name} value={item.name}>{item.name}</option>
+                    ))}
                   </select>
                 </div>
 

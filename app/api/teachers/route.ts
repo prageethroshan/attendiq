@@ -49,6 +49,22 @@ export async function POST(req: Request) {
     }
 
     const service = createServiceSupabaseClient()
+    const cleanDepartment = department?.trim() ?? ''
+    if (cleanDepartment) {
+      const { data: knownDepartment } = await service
+        .from('departments')
+        .select('name')
+        .eq('name', cleanDepartment)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (!knownDepartment) {
+        return NextResponse.json(
+          { error: 'Select an active department from the controlled department list.' },
+          { status: 400 }
+        )
+      }
+    }
 
     const { data: newUser, error: createError } =
       await service.auth.admin.createUser({
@@ -57,7 +73,7 @@ export async function POST(req: Request) {
         email_confirm: true,
         user_metadata: {
           full_name: full_name.trim(),
-          department: department?.trim() ?? '',
+          department: cleanDepartment,
           role: 'teacher',
         },
       })
@@ -83,7 +99,7 @@ export async function POST(req: Request) {
             id: newUser.user.id,
             full_name: full_name.trim(),
             email: email.trim().toLowerCase(),
-            department: department?.trim() ?? null,
+            department: cleanDepartment || null,
             role: 'teacher',
             is_active: true,
           },

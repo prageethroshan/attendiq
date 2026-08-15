@@ -54,6 +54,28 @@ export async function POST(req: Request) {
     }
 
     const service = createServiceSupabaseClient()
+    const departments = Array.from(new Set(cleaned.map(student => student.department)))
+    const { data: knownDepartments, error: departmentsError } = await service
+      .from('departments')
+      .select('name')
+      .in('name', departments)
+      .eq('is_active', true)
+
+    if (departmentsError) {
+      return NextResponse.json({ error: 'Failed to validate departments.' }, { status: 500 })
+    }
+
+    const knownDepartmentSet = new Set((knownDepartments ?? []).map(item => item.name))
+    const invalidDepartments = departments.filter(item => !knownDepartmentSet.has(item))
+    if (invalidDepartments.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'Roster contains unknown departments.',
+          details: invalidDepartments.slice(0, 10).map(item => `${item}: add this department in Admin > Students before uploading`),
+        },
+        { status: 400 }
+      )
+    }
 
     const studentIds = cleaned.map(student => student.student_id)
     const { data: existingStudents } = await service

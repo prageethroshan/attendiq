@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface StudentRow {
   student_id: string
@@ -20,6 +20,12 @@ interface StudentResponse {
   page: number
   pageSize: number
   totalPages: number
+}
+
+interface Department {
+  name: string
+  is_active: boolean
+  created_at: string
 }
 
 type EditState = {
@@ -49,11 +55,22 @@ export default function AdminStudentsPage() {
   const [edit, setEdit] = useState<EditState | null>(null)
   const [mergeSource, setMergeSource] = useState('')
   const [mergeTarget, setMergeTarget] = useState('')
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [newDepartment, setNewDepartment] = useState('')
 
-  const departments = useMemo(
-    () => Array.from(new Set(students.map(student => student.department).filter(Boolean))).sort(),
-    [students]
-  )
+  async function loadDepartments() {
+    try {
+      const response = await fetch('/api/admin/departments?includeInactive=true')
+      const data: Department[] & { error?: string } = await response.json()
+      if (!response.ok) {
+        setError(data.error ?? 'Failed to load departments.')
+        return
+      }
+      setDepartments(data)
+    } catch {
+      setError('Failed to load departments.')
+    }
+  }
 
   async function loadStudents(nextPage = page) {
     setLoading(true)
@@ -86,9 +103,59 @@ export default function AdminStudentsPage() {
   }
 
   useEffect(() => {
+    loadDepartments()
     loadStudents(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
+
+  async function createDepartment() {
+    const name = newDepartment.trim()
+    if (!name) return
+    setSaving(true)
+    setError('')
+    try {
+      const response = await fetch('/api/admin/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error ?? 'Failed to create department.')
+        return
+      }
+      setNewDepartment('')
+      await loadDepartments()
+    } catch {
+      setError('Failed to create department.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function toggleDepartment(item: Department) {
+    setSaving(true)
+    setError('')
+    try {
+      const encodedName = item.name.split('/').map(encodeURIComponent).join('/')
+      const response = await fetch(`/api/admin/departments/${encodedName}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !item.is_active }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setError(data.error ?? 'Failed to update department.')
+        return
+      }
+      await loadDepartments()
+      await loadStudents(page)
+    } catch {
+      setError('Failed to update department.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   function startEdit(student: StudentRow) {
     setEdit({
@@ -212,16 +279,16 @@ export default function AdminStudentsPage() {
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em' }}>DEPARTMENT</span>
-            <input
+            <select
               value={department}
               onChange={event => setDepartment(event.target.value)}
-              placeholder="Department"
               className="input"
-              list="student-departments"
-            />
-            <datalist id="student-departments">
-              {departments.map(item => <option key={item} value={item} />)}
-            </datalist>
+            >
+              <option value="">All departments</option>
+              {departments.filter(item => item.is_active).map(item => (
+                <option key={item.name} value={item.name}>{item.name}</option>
+              ))}
+            </select>
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em' }}>STATUS</span>
@@ -384,7 +451,12 @@ export default function AdminStudentsPage() {
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700 }}>DEPARTMENT</span>
-              <input value={edit.department} onChange={event => setEdit({ ...edit, department: event.target.value })} className="input" />
+              <select value={edit.department} onChange={event => setEdit({ ...edit, department: event.target.value })} className="input">
+                <option value="">Select department</option>
+                {departments.filter(item => item.is_active || item.name === edit.department).map(item => (
+                  <option key={item.name} value={item.name}>{item.name}{item.is_active ? '' : ' (inactive)'}</option>
+                ))}
+              </select>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 13, paddingBottom: 10 }}>
               <input
@@ -405,6 +477,53 @@ export default function AdminStudentsPage() {
           </div>
         </div>
       )}
+
+      <div className="glass" style={{ padding: 18 }}>
+        <h2 style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700, marginBottom: 6 }}>
+          Controlled Departments
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 14 }}>
+          Student uploads and edits must use one of these active departments.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'end', marginBottom: 14 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700 }}>NEW DEPARTMENT</span>
+            <input
+              value={newDepartment}
+              onChange={event => setNewDepartment(event.target.value)}
+              placeholder="Business Management"
+              className="input"
+            />
+          </label>
+          <button onClick={createDepartment} className="btn-primary" disabled={saving || !newDepartment.trim()}>
+            Add department
+          </button>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {departments.map(item => (
+            <button
+              key={item.name}
+              onClick={() => toggleDepartment(item)}
+              className="btn-ghost"
+              disabled={saving}
+              style={{
+                fontSize: 12,
+                padding: '6px 10px',
+                color: item.is_active ? 'var(--em)' : 'var(--text-dim)',
+                borderColor: item.is_active ? 'var(--em-border)' : 'var(--border)',
+              }}
+              title={item.is_active ? 'Click to deactivate' : 'Click to reactivate'}
+            >
+              {item.name}{item.is_active ? '' : ' (inactive)'}
+            </button>
+          ))}
+          {departments.length === 0 && (
+            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+              No departments yet.
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="glass" style={{ padding: 18 }}>
         <h2 style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700, marginBottom: 6 }}>

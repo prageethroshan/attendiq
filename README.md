@@ -28,7 +28,7 @@ To bootstrap the first administrator, set that user's `profiles.role` to `admin`
 
 ## Student CSV format
 
-Upload the student list once from the dashboard. Student IDs must contain the academic intake year (for example, `MGT/2025/001`), and every row must include a department. When creating a session, choose an academic year and department; all matching students become that session's expected attendance list automatically.
+Upload the student list once from the dashboard. Student IDs must contain the academic intake year (for example, `MGT/2025/001`), and every row must include an active department from the controlled department list. When creating a session, choose an academic year and department; all matching students become that session's expected attendance list automatically.
 
 ```csv
 Student ID,Full Name,Year,Department
@@ -37,7 +37,7 @@ MGT/2025/001,Kasun Perera,1,Business Management
 
 Uploads are all-or-nothing. Existing student identity fields are immutable through teacher uploads; conflicting details are reported for administrator review.
 
-Administrators can maintain student records from `/admin/students`. Deactivating a student excludes them from future cohort sessions while preserving historical attendance.
+Administrators can maintain student records and departments from `/admin/students`. Deactivating a student excludes them from future cohort sessions while preserving historical attendance. Deactivating a department prevents new uploads or edits from using it; existing historical records remain intact.
 
 ## Verification
 
