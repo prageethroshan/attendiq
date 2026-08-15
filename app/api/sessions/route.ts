@@ -24,13 +24,17 @@ export async function POST(req: Request) {
       geo_lat, geo_lng, geo_radius_m,
     } = parsed.data
 
+    const service = createServiceSupabaseClient()
+    await service.rpc('close_expired_sessions', { p_teacher_id: user.id })
+
     // ── Duplicate active session guard ──
-    // Teacher cannot run two sessions at the same time
+    // Teacher cannot run two unexpired sessions at the same time
     const { data: existing } = await supabase
       .from('sessions')
       .select('id, subject_name')
       .eq('teacher_id', user.id)
       .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString())
       .single()
 
     if (existing) {
@@ -51,7 +55,6 @@ export async function POST(req: Request) {
     let inserted = false
     let attempts = 0
 
-    const service = createServiceSupabaseClient()
     const { data: profile } = await service
       .from('profiles')
       .select('full_name')
@@ -146,6 +149,8 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const filter = searchParams.get('filter') // 'active' | 'history' | null (all)
+    const service = createServiceSupabaseClient()
+    await service.rpc('close_expired_sessions', { p_teacher_id: user.id })
 
     let query = supabase
       .from('sessions')

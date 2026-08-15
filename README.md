@@ -20,7 +20,9 @@ AttendIQ is a Next.js and Supabase attendance application for teacher-managed se
 4. Apply migrations with `supabase db push`.
 5. Start development with `npm run dev`.
 
-The migrations under `supabase/migrations/` must be applied before deploying matching application code. They normalize session enrollment, protect profile roles, add cohort targeting, archive legacy duplicate attendance records, add uniqueness constraints, and install atomic rate limiting.
+The migrations under `supabase/migrations/` must be applied before deploying matching application code. They normalize session enrollment, protect profile roles, add cohort targeting, archive legacy duplicate attendance records, add uniqueness constraints, install atomic rate limiting, and add database-side aggregation for cohort counts and analytics.
+
+The historical-attendance backfill links existing attendance records to the normalized session enrollment table. It is safe to run repeatedly because duplicate links are ignored.
 
 To bootstrap the first administrator, set that user's `profiles.role` to `admin` directly through a trusted database administration channel. Never place authorization roles in user-editable metadata.
 
@@ -34,6 +36,8 @@ MGT/2025/001,Kasun Perera,1,Business Management
 ```
 
 Uploads are all-or-nothing. Existing student identity fields are immutable through teacher uploads; conflicting details are reported for administrator review.
+
+Administrators can maintain student records from `/admin/students`. Deactivating a student excludes them from future cohort sessions while preserving historical attendance.
 
 ## Verification
 

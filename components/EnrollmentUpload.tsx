@@ -22,12 +22,14 @@ export default function EnrollmentUpload({ onClose }: Props) {
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [uploadResult, setUploadResult] = useState<{ inserted: number; errors: string[] } | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   function parseCSV(file: File) {
     setParseErrors([])
     setErrorMsg('')
+    setUploadErrors([])
 
     Papa.parse(file, {
       header: true,
@@ -112,6 +114,7 @@ export default function EnrollmentUpload({ onClose }: Props) {
   async function handleUpload() {
     setUploadState('uploading')
     setErrorMsg('')
+    setUploadErrors([])
 
     const res = await fetch('/api/students/bulk', {
       method: 'POST',
@@ -125,6 +128,11 @@ export default function EnrollmentUpload({ onClose }: Props) {
 
     if (!res.ok) {
       setErrorMsg(data.error ?? 'Upload failed.')
+      const details = Array.isArray(data.details) ? data.details : []
+      const conflicts = Array.isArray(data.conflicts)
+        ? data.conflicts.map((studentId: string) => `${studentId}: details do not match the existing student record`)
+        : []
+      setUploadErrors([...details, ...conflicts])
       setUploadState('error')
       return
     }
@@ -424,6 +432,7 @@ ACF/2025/002,Nimali Fernando,1,Accountancy & Finance`}
                     setUploadState('idle')
                     setStudents([])
                     setParseErrors([])
+                    setUploadErrors([])
                   }}
                   className="btn-ghost"
                   style={{ flex: 1 }}
@@ -520,6 +529,28 @@ ACF/2025/002,Nimali Fernando,1,Accountancy & Finance`}
               <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
                 {errorMsg}
               </p>
+              {uploadErrors.length > 0 && (
+                <div style={{
+                  background: 'rgba(248,113,113,0.08)',
+                  border: '1px solid rgba(248,113,113,0.2)',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  marginBottom: 16,
+                  textAlign: 'left',
+                  fontSize: 12,
+                }}>
+                  {uploadErrors.slice(0, 10).map((error, index) => (
+                    <p key={index} style={{ color: 'var(--text-muted)', marginBottom: 3 }}>
+                      {error}
+                    </p>
+                  ))}
+                  {uploadErrors.length > 10 && (
+                    <p style={{ color: 'var(--text-dim)', marginTop: 4 }}>
+                      +{uploadErrors.length - 10} more
+                    </p>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   onClick={() => setUploadState('preview')}

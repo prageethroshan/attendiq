@@ -39,6 +39,7 @@ export type Student = {
   year: string
   academic_year: number | null
   department: string
+  is_active: boolean
   created_at: string
 }
 
