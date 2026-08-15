@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { exportAttendanceXLSX, exportSubjectRegisterXLSX } from '@/lib/export'
+import { exportAttendanceXLSX, exportSessionReportXLSX, exportSubjectRegisterXLSX } from '@/lib/export'
 
 interface AttendanceRow {
   id: string
@@ -82,6 +82,18 @@ export default function LogPage() {
 
   function isFlagged(r: AttendanceRow) {
     return r.geo_verified === false && !r.manual_entry
+  }
+
+  async function exportSelectedSessionReport() {
+    if (!selectedSession) return
+    const endpoint = isAdminLog ? '/api/admin/reports/session' : '/api/reports/session'
+    const response = await fetch(`${endpoint}?session_id=${encodeURIComponent(selectedSession)}`)
+    if (!response.ok) {
+      alert('Failed to export session report.')
+      return
+    }
+    const data = await response.json()
+    await exportSessionReportXLSX(data)
   }
 
   return (
@@ -207,6 +219,43 @@ export default function LogPage() {
                     </div>
                   </div>
                 </button>
+
+                {selectedSession && (
+                  <button
+                    onClick={async () => {
+                      setShowExportMenu(false)
+                      await exportSelectedSessionReport()
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '11px 16px',
+                      background: 'none',
+                      border: 'none',
+                      borderTop: '1px solid var(--border)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={event => { event.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                    onMouseLeave={event => { event.currentTarget.style.background = 'none' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--em)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                      <path d="M9 11l3 3L22 4"/>
+                      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                    </svg>
+                    <div>
+                      <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
+                        Session Absent Report
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
+                        Complete register with absent students, scan time, and distance
+                      </div>
+                    </div>
+                  </button>
+                )}
               </div>
             </>
           )}

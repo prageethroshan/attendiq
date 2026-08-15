@@ -31,6 +31,41 @@ interface AnalyticsData {
 
 type ExportRow = Record<string, string | number>
 
+interface SessionReportStudent {
+  student_id: string
+  name: string
+  year: string
+  department: string | null
+  status: string
+  marked_at: string | null
+  manual_entry: boolean
+  geo_verified: boolean | null
+  dist_metres: number | null
+  device_fp: string | null
+}
+
+interface SessionReportData {
+  session: {
+    subject_code: string
+    subject_name: string
+    teacher_name: string
+    teacher_email: string
+    created_at: string
+    expires_at: string
+    academic_year: number | null
+    department: string | null
+  }
+  summary: {
+    enrolled: number
+    present: number
+    absent: number
+    manual: number
+    flagged: number
+    attendanceRate: number
+  }
+  students: SessionReportStudent[]
+}
+
 function addSheet(
   workbook: ExcelJS.Workbook,
   name: string,
@@ -161,6 +196,75 @@ export async function exportAnalyticsXLSX(data: AnalyticsData) {
   }
 
   await download(workbook, `AttendIQ-Analytics-${new Date().toISOString().slice(0, 10)}.xlsx`)
+}
+
+function scanTime(value: string | null) {
+  return value ? new Date(value).toLocaleString('en-LK') : ''
+}
+
+function geoSignal(value: boolean | null) {
+  if (value === null) return 'N/A'
+  return value ? 'Verified' : 'Flagged'
+}
+
+export async function exportSessionReportXLSX(data: SessionReportData) {
+  const workbook = new ExcelJS.Workbook()
+  const sessionDate = new Date(data.session.created_at).toLocaleDateString('en-LK')
+
+  addSheet(workbook, 'Summary', [
+    { Field: 'Subject', Value: `${data.session.subject_code} - ${data.session.subject_name}` },
+    { Field: 'Teacher', Value: data.session.teacher_name },
+    { Field: 'Teacher Email', Value: data.session.teacher_email },
+    { Field: 'Academic Year', Value: data.session.academic_year ?? '' },
+    { Field: 'Department', Value: data.session.department ?? '' },
+    { Field: 'Session Date', Value: sessionDate },
+    { Field: 'Enrolled', Value: data.summary.enrolled },
+    { Field: 'Present', Value: data.summary.present },
+    { Field: 'Absent', Value: data.summary.absent },
+    { Field: 'Manual Entries', Value: data.summary.manual },
+    { Field: 'Flagged', Value: data.summary.flagged },
+    { Field: 'Attendance Rate', Value: `${data.summary.attendanceRate}%` },
+  ], [22, 56])
+
+  addSheet(workbook, 'Complete Register', data.students.map(student => ({
+    'Student ID': student.student_id,
+    'Full Name': student.name,
+    'Year': `Year ${student.year}`,
+    'Department': student.department ?? '',
+    'Status': student.status,
+    'Scan Time': scanTime(student.marked_at),
+    'Distance (m)': student.dist_metres ?? '',
+    'Geo Signal': geoSignal(student.geo_verified),
+    'Manual Entry': student.manual_entry ? 'Yes' : 'No',
+  })), [18, 26, 8, 26, 12, 22, 14, 14, 14])
+
+  const absent = data.students.filter(student => student.status === 'Absent')
+  addSheet(workbook, 'Absent Students', absent.map(student => ({
+    'Student ID': student.student_id,
+    'Full Name': student.name,
+    'Year': `Year ${student.year}`,
+    'Department': student.department ?? '',
+    'Status': 'Absent',
+    'Scan Time': '',
+    'Distance (m)': '',
+  })), [18, 26, 8, 26, 12, 22, 14])
+
+  const flagged = data.students.filter(student => student.geo_verified === false || student.manual_entry)
+  if (flagged.length > 0) {
+    addSheet(workbook, 'Flagged Records', flagged.map(student => ({
+      'Student ID': student.student_id,
+      'Full Name': student.name,
+      'Status': student.status,
+      'Reason': student.manual_entry ? 'Manual entry' : 'Location signal failed',
+      'Scan Time': scanTime(student.marked_at),
+      'Distance (m)': student.dist_metres ?? 'Unknown',
+      'Device Signal': student.device_fp ?? '',
+    })), [18, 26, 12, 24, 22, 14, 22])
+  }
+
+  const safeSubjectCode = data.session.subject_code.replace(/[^A-Za-z0-9-]/g, '')
+  const safeDate = new Date(data.session.created_at).toISOString().slice(0, 10)
+  await download(workbook, `AttendIQ-Session-Report-${safeSubjectCode}-${safeDate}.xlsx`)
 }
 
 export async function exportSubjectRegisterXLSX(endpoint = '/api/attendance') {
